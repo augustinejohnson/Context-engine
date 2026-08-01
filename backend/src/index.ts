@@ -320,6 +320,22 @@ io.on('connection', (socket) => {
   });
 
   socket.on('push_live', async (cardData: any) => {
+    let masterKey = '';
+    try {
+      const { data: globalSettings } = await supabase.from('global_settings').select('openai_api_key').single();
+      if (globalSettings?.openai_api_key) {
+        masterKey = globalSettings.openai_api_key;
+      }
+    } catch (e) {
+      console.error('[Global Settings] Error fetching openai_api_key:', e);
+    }
+    
+    // Use master key instead of cardData.settings.openAIApiKey
+    const apiKeyToUse = masterKey || (cardData.settings ? cardData.settings.openAIApiKey : '');
+    if (cardData.settings) {
+      cardData.settings.openAIApiKey = apiKeyToUse;
+    }
+
     const settings = tenantSettings.get(tenantId) || {};
     
     // Live Translation Engine (Gemini)
@@ -490,6 +506,84 @@ app.post('/api/verify_payment', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Database update failed' });
+  }
+});
+
+// ---- Admin Middleware ----
+const adminCheck = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'Missing auth token' });
+  
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+  
+  if (user.email !== 'ronimationstudios@gmail.com') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  next();
+};
+
+// ---- Admin Endpoints ----
+app.get('/api/admin/users', adminCheck, async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('user_profiles').select('*');
+    if (error) throw error;
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/update_user', adminCheck, async (req, res) => {
+  const { userId, subscription_status, trial_ends_at } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update({ subscription_status, trial_ends_at })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/settings', adminCheck, async (req, res) => {
+  const { openai_api_key } = req.body;
+  try {
+    let { data, error } = await supabase
+      .from('global_settings')
+      .update({ openai_api_key })
+      .eq('id', 1)
+      .select()
+      .single();
+      
+    if (error) {
+      const insertRes = await supabase
+        .from('global_settings')
+        .insert({ id: 1, openai_api_key })
+        .select()
+        .single();
+      if (insertRes.error) throw insertRes.error;
+      data = insertRes.data;
+    }
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/settings', adminCheck, async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('global_settings').select('*').single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
 });
 

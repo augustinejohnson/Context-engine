@@ -1,8 +1,9 @@
+"use client";
 import React, { useState } from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '../lib/supabaseClient';
 
-export default function SubscriptionScreen({ email, onSubscribeSuccess }: { email: string, onSubscribeSuccess: () => void }) {
+export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEndsAt }: { email: string, onSubscribeSuccess: () => void, trialEndsAt?: string }) {
   const [loading, setLoading] = useState(false);
 
   const config = {
@@ -16,10 +17,9 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess }: { emai
 
   const onSuccess = async (reference: any) => {
     setLoading(true);
-    // Ping backend to verify transaction and activate subscription
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`http://${window.location.hostname}:3001/api/verify_payment`, {
+      const res = await fetch(`https://context-engine-production-51a1.up.railway.app/api/verify_payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,31 +44,48 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess }: { emai
     console.log('Payment closed');
   };
 
+  const hasTrial = trialEndsAt && new Date(trialEndsAt) > new Date();
+
   return (
-    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-      <div style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: '#1e293b', borderRadius: '12px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-        <h2 style={{ color: '#fff', marginBottom: '10px' }}>Active Subscription Required</h2>
-        <p style={{ color: '#94a3b8', marginBottom: '30px' }}>To use the Context Engine SaaS globally, you need an active subscription.</p>
-        <button 
-          onClick={() => {
-            // @ts-ignore
-            initializePayment(onSuccess, onClose);
-          }}
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#0ea5e9',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            width: '100%'
-          }}
-        >
-          {loading ? "Verifying..." : "Subscribe Now (₦15,000 / mo)"}
-        </button>
+    <div className="auth-container">
+      <div className="bg-particles"></div>
+      
+      <div className="subscription-card glass-panel" style={{ maxWidth: '600px', width: '100%' }}>
+        <h2 className="auth-title gradient-text" style={{ textAlign: 'center', marginBottom: '10px' }}>Choose Your Plan</h2>
+        <p style={{ textAlign: 'center', color: '#94a3b8', marginBottom: '30px' }}>
+          {hasTrial 
+            ? `You have a free trial active until ${new Date(trialEndsAt).toLocaleDateString()}! Upgrade early to secure your price.` 
+            : `Your trial has expired. Upgrade to continue using Context Engine PRO.`}
+        </p>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="plan-tier glass-panel" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)' }}>
+            <h3 style={{ margin: 0, color: '#fff' }}>Pro Monthly</h3>
+            <p className="gradient-text" style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0' }}>₦15,000<span style={{ fontSize: '16px', color: '#94a3b8' }}>/mo</span></p>
+            <ul style={{ color: '#cbd5e1', paddingLeft: '20px', lineHeight: 1.6, marginBottom: '20px' }}>
+              <li>Unlimited Live Transcripts & Translations</li>
+              <li>AI Smart Scripture & Lyrics Staging</li>
+              <li>Premium Lower Thirds & Overlays</li>
+            </ul>
+            <button 
+              className="glass-btn primary" 
+              style={{ width: '100%', fontSize: '16px', fontWeight: 'bold' }}
+              onClick={() => {
+                // @ts-ignore
+                initializePayment(onSuccess, onClose);
+              }}
+              disabled={loading}
+            >
+              {loading ? "Verifying..." : "Subscribe Now"}
+            </button>
+          </div>
+          
+          {hasTrial && (
+            <button className="glass-btn" style={{ width: '100%' }} onClick={onSubscribeSuccess}>
+              Continue with Free Trial
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

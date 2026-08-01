@@ -180,9 +180,22 @@ export default function ContextEngineDashboard() {
 
   useEffect(() => {
     const fetchSub = async (userId: string) => {
-      const { data, error } = await supabase.from('user_profiles').select('subscription_status').eq('id', userId).single();
-      if (data) setSubStatus(data.subscription_status || "inactive");
-      else setSubStatus("inactive");
+      const { data, error } = await supabase.from('user_profiles').select('subscription_status, trial_ends_at').eq('id', userId).single();
+      if (data) {
+        const status = data.subscription_status || "inactive";
+        setSubStatus(status);
+        
+        // Trial logic
+        if (data.trial_ends_at) {
+          const trialEnds = new Date(data.trial_ends_at);
+          if (trialEnds > new Date()) {
+            setSubStatus(`trial_${data.trial_ends_at}`); // Encode trial date in status string for SubscriptionScreen to parse
+            return;
+          }
+        }
+      } else {
+        setSubStatus("inactive");
+      }
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -654,15 +667,16 @@ export default function ContextEngineDashboard() {
   }
 
   if (!session) {
-    return <AuthScreen />;
+    return <AuthScreen onLogin={() => {}} />;
   }
 
   if (subStatus === "loading") {
-    return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: 'white' }}>Loading Subscription Status...</div>;
+    return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f172a', color: 'white'}}>Loading...</div>;
   }
 
-  if (subStatus !== "active") {
-    return <SubscriptionScreen email={session.user.email} onSubscribeSuccess={() => setSubStatus("active")} />;
+  if (subStatus !== "active" && subStatus !== "lifetime" && !subStatus.startsWith("trial_")) {
+    const trialEndsAt = subStatus.startsWith("trial_") ? subStatus.split("trial_")[1] : undefined;
+    return <SubscriptionScreen email={session?.user?.email || ""} onSubscribeSuccess={() => setSubStatus("active")} trialEndsAt={trialEndsAt} />;
   }
 
   return (

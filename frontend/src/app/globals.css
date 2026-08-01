@@ -441,3 +441,82 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes anim-typewriter { from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); } to { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } }
 @keyframes anim-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes anim-slide-down { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(30px); } }
+
+/* GLASSMORPHISM SaaS STYLES */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+}
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 6px;
+  outline: none;
+  width: 100%;
+}
+.glass-input:focus { border-color: rgba(255,255,255,0.4); }
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.glass-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.glass-btn.primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; }
+.glass-btn.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); border: none; }
+
+.gradient-text {
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Background Particles (Auth/Sub Screens) */
+.auth-container {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem;
+}
+.auth-content {
+  display: flex; gap: 2rem; max-width: 900px; width: 100%; z-index: 10;
+}
+.auth-card, .auth-info, .subscription-card {
+  padding: 2.5rem; flex: 1;
+}
+
+.bg-particles {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: #0f172a;
+  z-index: 0; overflow: hidden;
+}
+.bg-particles::before, .bg-particles::after {
+  content: ''; position: absolute; width: 400px; height: 400px;
+  background: rgba(56, 189, 248, 0.15); border-radius: 50%;
+  filter: blur(100px);
+  animation: drift 10s infinite alternate cubic-bezier(0.5, 0, 0.5, 1);
+}
+.bg-particles::after {
+  background: rgba(139, 92, 246, 0.15); right: 10%; bottom: 10%; animation-delay: -5s;
+}
+@keyframes drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(100px, 100px); }
+}
+
+/* Admin */
+.admin-container { padding: 2rem; max-width: 1000px; margin: 0 auto; }
+.admin-section { padding: 2rem; margin-bottom: 2rem; }
+.admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.admin-table th, .admin-table td { padding: 1rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+
