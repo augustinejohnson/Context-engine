@@ -79,11 +79,13 @@ function getExitVariant(animation: string) {
 /* ── Component ─────────────────────────────────────────── */
 
 export default function OverlayPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [liveCard, setLiveCard] = useState<LiveCard | null>(null);
   const [settings, setSettings] = useState<GraphicsSettings>(DEFAULT_SETTINGS);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    setIsMounted(true);
     const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const socket = io(`http://${backendHost}:3001`);
     socketRef.current = socket;
@@ -111,6 +113,8 @@ export default function OverlayPage() {
       socket.disconnect();
     };
   }, []);
+
+  if (!isMounted) return null;
 
   /* ── Derived values ── */
   const entrance = getEntranceVariant(settings.entranceAnimation);

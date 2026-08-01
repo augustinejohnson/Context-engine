@@ -12,9 +12,11 @@ export default function OutputPage() {
   const [bgColor1, setBgColor1] = useState("#000000");
   const [bgColor2, setBgColor2] = useState("#1a1a2e");
 
+  const [isMounted, setIsMounted] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    setIsMounted(true);
     const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     socketRef.current = io(`http://${backendHost}:3001`);
 
@@ -66,6 +68,8 @@ export default function OutputPage() {
     setStarsSmall(generateStars(700));
     setStarsMedium(generateStars(200));
   }, []);
+
+  if (!isMounted) return null;
 
   return (
     <>

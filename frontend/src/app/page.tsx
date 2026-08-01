@@ -4,7 +4,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { supabase } from "../lib/supabaseClient";
 import AuthScreen from "../components/AuthScreen";
-import SubscriptionScreen from "../components/SubscriptionScreen";
+import dynamic from 'next/dynamic';
+const SubscriptionScreen = dynamic(() => import("../components/SubscriptionScreen"), { ssr: false });
 
 /* ── Types ─────────────────────────────────────────────── */
 type CardType = "scripture" | "knowledge" | "lyric";
@@ -96,9 +97,14 @@ const FALLBACK_FONTS = [
 
 /* ── Component ─────────────────────────────────────────── */
 export default function ContextEngineDashboard() {
+  const [isMounted, setIsMounted] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [subStatus, setSubStatus] = useState<string>("loading");
   
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [autoPush, setAutoPush] = useState(false);
@@ -258,7 +264,7 @@ export default function ContextEngineDashboard() {
 
   /* ── Socket.io setup ── */
   useEffect(() => {
-    const backendHost = window.location.hostname;
+    const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const token = session?.access_token;
     socketRef.current = io(`http://${backendHost}:3001`, {
       auth: { token }
@@ -640,6 +646,10 @@ export default function ContextEngineDashboard() {
     setStarsSmall(generateStars(700));
     setStarsMedium(generateStars(200));
   }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   if (!session) {
     return <AuthScreen />;
