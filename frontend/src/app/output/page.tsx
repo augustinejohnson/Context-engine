@@ -18,7 +18,7 @@ export default function OutputPage() {
   useEffect(() => {
     setIsMounted(true);
     const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
     socketRef.current = io(backendUrl);
 
     socketRef.current.on("live_card", (cardData: StagingCard) => {

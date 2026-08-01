@@ -265,7 +265,7 @@ export default function ContextEngineDashboard() {
   /* ── Socket.io setup ── */
   useEffect(() => {
     const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
     
     socketRef.current = io(backendUrl, {
       auth: { token: session?.access_token }
@@ -294,7 +294,7 @@ export default function ContextEngineDashboard() {
     
     socketRef.current.on("session_ended", (sessionId) => {
       const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
       window.location.href = `${backendUrl}/export-session/${sessionId}`;
     });
     
