@@ -28,7 +28,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Context Engine PRO - Live Broadcast Intelligence",
+  title: "Corpus - Live Broadcast Intelligence",
   description: "AI-powered live broadcasting tool for churches, lectures, and keynotes. Real-time captions, scriptures, and lyrics.",
 };
 

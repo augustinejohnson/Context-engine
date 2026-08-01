@@ -687,8 +687,8 @@ export default function ContextEngineDashboard() {
           padding: '24px 48px', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Context Engine PRO
+            <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Corpus
             </h1>
             <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Home</Link>
             <Link href="/about" style={{ color: '#a1a1aa', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>About</Link>
@@ -720,7 +720,7 @@ export default function ContextEngineDashboard() {
             Live Broadcasting for <span className="gradient-text">Modern Ministries</span>
           </h2>
           <p style={{ fontSize: '1.25rem', color: '#a1a1aa', marginBottom: '40px', maxWidth: '600px', lineHeight: 1.6 }}>
-            Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Context Engine AI.
+            Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Corpus AI.
           </p>
           <button 
             onClick={() => setShowAuthModal(true)}
@@ -1418,7 +1418,7 @@ export default function ContextEngineDashboard() {
       {/* TOP BAR */}
       <header className="top-bar glass-panel">
         <h1 className="top-bar-title" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div>Context Engine <span style={{ fontSize: "1rem", color: "var(--accent-purple)" }}>PRO</span></div>
+          <div>Corpus</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '4px 10px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: socketConnected ? '#22c55e' : '#ef4444', display: 'inline-block' }}></span>
             <span style={{ color: socketConnected ? '#22c55e' : '#ef4444' }}>{socketConnected ? 'Connected' : 'Reconnecting...'}</span>

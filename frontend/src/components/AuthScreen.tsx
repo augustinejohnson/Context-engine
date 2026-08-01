@@ -29,7 +29,7 @@ export default function AuthScreen({ onLogin, onClose }: { onLogin: () => void, 
           ✕
         </button>
         
-        <h2 className="gradient-text" style={{ textAlign: 'center', marginBottom: '10px', fontSize: '1.8rem' }}>Context Engine PRO</h2>
+        <h2 className="gradient-text" style={{ textAlign: 'center', marginBottom: '10px', fontSize: '1.2rem' }}>Corpus</h2>
         <p style={{ textAlign: 'center', color: '#94a3b8', marginBottom: '30px', fontSize: '0.9rem' }}>
           Enter your dashboard to manage live broadcasts.
         </p>

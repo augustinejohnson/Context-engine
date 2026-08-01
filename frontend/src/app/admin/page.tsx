@@ -72,7 +72,7 @@ export default function AdminDashboard() {
       
       <div className="admin-section glass-panel">
         <h2 style={{ color: 'white' }}>Global Settings</h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '15px' }}>This OpenAI API Key will be used securely across the entire Context Engine platform. Your users will never see it.</p>
+        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '15px' }}>This OpenAI API Key will be used securely across the entire Corpus platform. Your users will never see it.</p>
         <form onSubmit={updateMasterKey} className="admin-form" style={{ display: 'flex', gap: '10px' }}>
           <input 
             type="password" 

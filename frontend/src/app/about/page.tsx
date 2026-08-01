@@ -24,8 +24,8 @@ export default function AboutPage() {
         padding: '24px 48px', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Context Engine PRO
+          <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Corpus
           </h1>
           <Link href="/" style={{ color: '#a1a1aa', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Home</Link>
           <Link href="/about" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>About</Link>
@@ -50,7 +50,7 @@ export default function AboutPage() {
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 10, maxWidth: '900px', margin: '60px auto', padding: '0 24px' }}>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '24px', textAlign: 'center' }}>
-          What is the Context Engine?
+          What is Corpus?
         </h2>
         <p style={{ fontSize: '1.2rem', color: '#a1a1aa', textAlign: 'center', marginBottom: '60px', lineHeight: 1.6 }}>
           A powerful, AI-driven media companion designed for churches and live broadcasts. It listens to your spoken audio in real-time and automatically stages relevant content for your audience.
@@ -63,7 +63,7 @@ export default function AboutPage() {
               <span>1.</span> Live AI Transcriptions
             </h3>
             <p style={{ color: '#cbd5e1', lineHeight: 1.6 }}>
-              Connect your audio feed, and the Context Engine instantly generates highly accurate, real-time transcripts. Perfect for providing live captions to your audience, ensuring no word is missed.
+              Connect your audio feed, and Corpus instantly generates highly accurate, real-time transcripts. Perfect for providing live captions to your audience, ensuring no word is missed.
             </p>
           </div>
 

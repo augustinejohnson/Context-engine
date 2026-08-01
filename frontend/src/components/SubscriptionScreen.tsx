@@ -55,7 +55,7 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEnd
         <p style={{ textAlign: 'center', color: '#94a3b8', marginBottom: '30px' }}>
           {hasTrial 
             ? `You have a free trial active until ${new Date(trialEndsAt).toLocaleDateString()}! Upgrade early to secure your price.` 
-            : `Your trial has expired. Upgrade to continue using Context Engine PRO.`}
+            : `Your trial has expired. Upgrade to continue using Corpus.`}
         </p>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
