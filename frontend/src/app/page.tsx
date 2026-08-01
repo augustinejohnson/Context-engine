@@ -264,10 +264,11 @@ export default function ContextEngineDashboard() {
 
   /* ── Socket.io setup ── */
   useEffect(() => {
-    const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const token = session?.access_token;
-    socketRef.current = io(`http://${backendHost}:3001`, {
-      auth: { token }
+    const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+    
+    socketRef.current = io(backendUrl, {
+      auth: { token: session?.access_token }
     });
 
     socketRef.current.on("connect", () => {
@@ -292,8 +293,9 @@ export default function ContextEngineDashboard() {
     });
     
     socketRef.current.on("session_ended", (sessionId) => {
-      const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-      window.location.href = `http://${backendHost}:3001/export-session/${sessionId}`;
+      const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+      window.location.href = `${backendUrl}/export-session/${sessionId}`;
     });
     
     socketRef.current.on("api_status", (statuses) => {

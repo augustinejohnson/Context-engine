@@ -17,8 +17,9 @@ export default function OutputPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    socketRef.current = io(`http://${backendHost}:3001`);
+    const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+    socketRef.current = io(backendUrl);
 
     socketRef.current.on("live_card", (cardData: StagingCard) => {
       setLiveContent({ content: cardData.content, preset: cardData.preset });

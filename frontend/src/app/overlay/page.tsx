@@ -86,9 +86,10 @@ export default function OverlayPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const backendHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const socket = io(`http://${backendHost}:3001`);
-    socketRef.current = socket;
+    const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${fallbackHost}:3001`;
+    socketRef.current = io(backendUrl);
+    const socket = socketRef.current;
 
     socket.on("connect", () => {
       console.log("[Overlay] Connected to backend:", socket.id);
