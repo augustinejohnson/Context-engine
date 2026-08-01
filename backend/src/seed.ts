@@ -74,7 +74,7 @@ async function seed() {
         await supabase.from('song_lyrics').insert({
           title: s.title,
           artist: s.artist,
-          section: \`Part \${i + 1}\`,
+          section: `Part ${i + 1}`,
           text: parts[i],
           tenant_id: tenantId
         });
