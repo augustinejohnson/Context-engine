@@ -5,6 +5,7 @@ import { io, Socket } from "socket.io-client";
 import { supabase } from "../lib/supabaseClient";
 import AuthScreen from "../components/AuthScreen";
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 const SubscriptionScreen = dynamic(() => import("../components/SubscriptionScreen"), { ssr: false });
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -100,6 +101,7 @@ export default function ContextEngineDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [subStatus, setSubStatus] = useState<string>("loading");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   useEffect(() => {
     setIsMounted(true);
@@ -667,7 +669,71 @@ export default function ContextEngineDashboard() {
   }
 
   if (!session) {
-    return <AuthScreen onLogin={() => {}} />;
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#09090b',
+        color: '#f8fafc',
+        fontFamily: "'Inter', sans-serif",
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Mesh */}
+        <div className="bg-particles" />
+
+        {/* Navigation */}
+        <nav style={{
+          position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between',
+          padding: '24px 48px', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Context Engine PRO
+            </h1>
+            <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Home</Link>
+            <Link href="/about" style={{ color: '#a1a1aa', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>About</Link>
+          </div>
+          <a 
+            href="https://wa.me/2341234567890" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{
+              background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)',
+              padding: '8px 20px', borderRadius: '24px', textDecoration: 'none', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+            }}
+          >
+            WhatsApp Support
+          </a>
+        </nav>
+
+        {/* Hero Section */}
+        <main style={{
+          position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 100px)',
+          textAlign: 'center', padding: '0 24px'
+        }}>
+          <h2 style={{ fontSize: '4.5rem', fontWeight: 800, marginBottom: '24px', maxWidth: '800px', lineHeight: 1.1 }}>
+            Live Broadcasting for <span className="gradient-text">Modern Ministries</span>
+          </h2>
+          <p style={{ fontSize: '1.25rem', color: '#a1a1aa', marginBottom: '40px', maxWidth: '600px', lineHeight: 1.6 }}>
+            Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Context Engine AI.
+          </p>
+          <button 
+            onClick={() => setShowAuthModal(true)}
+            className="glass-btn primary"
+            style={{ fontSize: '1.2rem', padding: '16px 32px', borderRadius: '32px', fontWeight: 600 }}
+          >
+            Start Your 7-Day Free Trial
+          </button>
+        </main>
+
+        {/* Auth Modal */}
+        {showAuthModal && (
+          <AuthScreen onLogin={() => setShowAuthModal(false)} onClose={() => setShowAuthModal(false)} />
+        )}
+      </div>
+    );
   }
 
   if (subStatus === "loading") {
