@@ -1,0 +1,101 @@
+/*
+ * Overlay — Transparent output layer for vMix / OBS browser capture
+ * ────────────────────────────────────────────────────────────────── */
+
+/* ── Root: fully transparent, covers the whole viewport ── */
+.overlay-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Make body & html transparent for this route */
+html, body {
+  background: transparent !important;
+}
+
+/* ── Container positioning by preset ── */
+.overlay-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+/* Full-Screen Centered */
+.overlay-full-screen {
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+}
+
+/* Lower-Third Banner */
+.overlay-lower-third {
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 0 80px 60px;
+  text-align: left;
+}
+
+/* Subtitle Overlay */
+.overlay-subtitle {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 40px 50px 40px;
+  text-align: center;
+}
+
+/* ── Card wrapper ── */
+.overlay-card {
+  position: relative;
+  max-width: 80vw;
+  padding: 24px 40px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Lower-third specific sizing */
+.overlay-lower-third .overlay-card {
+  max-width: 65vw;
+  padding: 20px 32px 20px 36px;
+}
+
+/* Subtitle specific sizing */
+.overlay-subtitle .overlay-card {
+  max-width: 90vw;
+  padding: 16px 32px;
+}
+
+/* ── Accent bar (decorative left border for lower-thirds) ── */
+.overlay-accent-bar {
+  position: absolute;
+  left: 0;
+  top: 10%;
+  bottom: 10%;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+
+/* ── Text ── */
+.overlay-text {
+  margin: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  /* High-contrast defaults — always legible over camera feeds */
+  color: #ffffff;
+  -webkit-text-stroke: 1.5px #000000;
+  paint-order: stroke fill;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8),
+               0 0 12px rgba(0,0,0,0.4),
+               0 0 30px rgba(0,0,0,0.2);
+}
