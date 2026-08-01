@@ -9,6 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import { detectScripture, detectKeywords } from './nlp-engine';
 import { createClient } from '@supabase/supabase-js';
+import { fetchLyricsFromWeb } from './lyrics-scraper';
 
 dotenv.config();
 
@@ -30,6 +31,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ---- Mock STT ----
 let mockSttInterval: NodeJS.Timeout | null = null;
+// Store tenant settings in memory
+const tenantSettings = new Map<string, any>();
+
 let currentLineIndex = 0;
 let cardIdCounter = 1;
 let currentBibleVersion = 'KJV';
@@ -202,6 +206,40 @@ io.on('connection', (socket) => {
     // Future: Forward to real STT provider (Deepgram, Whisper)
   });
 
+  socket.on('auto_fetch_song', async (title: string) => {
+    try {
+      console.log(`[Auto-Fetch] Scraping lyrics for: ${title}`);
+      const songData = await fetchLyricsFromWeb(title);
+      
+      const { data: songRecord, error: songErr } = await supabase.from('songs')
+        .insert({ title: songData.title, artist: songData.artist, tenant_id: tenantId })
+        .select()
+        .single();
+        
+      if (songErr || !songRecord) throw new Error("Failed to insert song into database.");
+
+      for (const section of songData.sections) {
+        await supabase.from('song_lyrics').insert({
+          song_id: songRecord.id,
+          title: songData.title,
+          artist: songData.artist,
+          section: section.section,
+          text: section.text,
+          tenant_id: tenantId
+        });
+      }
+      
+      // Refresh the frontend's song list
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+      socket.emit('fetch_success', `Successfully fetched and imported "${songData.title}"!`);
+
+    } catch (e: any) {
+      console.error('[Auto-Fetch] Error:', e);
+      socket.emit('fetch_error', `Could not fetch lyrics for "${title}". Error: ${e.message}`);
+    }
+  });
+
   // ---- Real-time transcript from browser Web Speech API ----
   socket.on('transcript_text', async (text: string) => {
     console.log(`[STT-Live] "${text}"`);
@@ -282,8 +320,25 @@ io.on('connection', (socket) => {
   });
 
   socket.on('push_live', async (cardData: any) => {
-    if (translationEnabled && translationTarget && cardData.content && openAIApiKey) {
-      // Translation logic here...
+    const settings = tenantSettings.get(tenantId) || {};
+    
+    // Live Translation Engine (Gemini)
+    if (settings.translationEnabled && settings.translationTarget && cardData.content && settings.geminiApiKey) {
+      try {
+        console.log(`[Translation] Translating to ${settings.translationTarget}...`);
+        const genAI = new GoogleGenAI({ apiKey: settings.geminiApiKey });
+        const response = await genAI.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Translate the following text to ${settings.translationTarget}. Provide ONLY the translation and nothing else:\n\n${cardData.content}`,
+        });
+        const translatedText = response.text?.trim() || "";
+        if (translatedText) {
+          cardData.content = `${cardData.content}\n\n[${settings.translationTarget}] ${translatedText}`;
+        }
+      } catch (e: any) {
+        console.error('[Translation Error]:', e);
+        socket.emit('toast_error', `Translation failed: ${e.message}`);
+      }
     }
 
     io.to(tenantId).emit('live_card', cardData);
@@ -292,9 +347,9 @@ io.on('connection', (socket) => {
     socket.emit('trigger_local_api', {
       action: 'push_live',
       content: cardData.content,
-      holyrics: { enabled: holyricsEnabled, ip: holyricsIp, port: holyricsPort, token: holyricsToken },
-      proPresenter: { enabled: proPresenterEnabled, ip: proPresenterIp, port: proPresenterPort },
-      vmix: { enabled: vmixEnabled, ip: vmixIp, input: vmixInput }
+      holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
+      proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
+      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput }
     });
 
     if (activeSessionId) {
@@ -314,17 +369,19 @@ io.on('connection', (socket) => {
 
   socket.on('clear_live', () => {
     io.to(tenantId).emit('clear_live');
+    const settings = tenantSettings.get(tenantId) || {};
 
     // Emit local API triggers back to the specific client's browser!
     socket.emit('trigger_local_api', {
       action: 'clear_live',
-      holyrics: { enabled: holyricsEnabled, ip: holyricsIp, port: holyricsPort, token: holyricsToken },
-      proPresenter: { enabled: proPresenterEnabled, ip: proPresenterIp, port: proPresenterPort },
-      vmix: { enabled: vmixEnabled, ip: vmixIp, input: vmixInput }
+      holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
+      proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
+      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput }
     });
   });
 
   socket.on('update_settings', (settings: any) => {
+    tenantSettings.set(tenantId, settings);
     io.to(tenantId).emit('settings_updated', settings);
   });
 
