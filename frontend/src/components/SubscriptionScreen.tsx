@@ -9,7 +9,7 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess }: { emai
     reference: (new Date()).getTime().toString(),
     email: email,
     amount: 15000 * 100, // Paystack amount is in kobo (e.g. 15,000 NGN)
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_67ecf7f3d86d4b4d262edb6ad4bb8a4f48c9ea6c',
   };
 
   const initializePayment = usePaystackPayment(config);
