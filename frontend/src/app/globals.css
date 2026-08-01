@@ -28,7 +28,6 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -45,6 +44,7 @@ h1, h2, h3, h4, h5, h6 {
   height: 100vh;
   padding: 16px;
   gap: 16px;
+  overflow: hidden;
 }
 
 .top-bar {
@@ -496,8 +496,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .bg-particles {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: #0f172a;
+  background-color: #050505;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
   z-index: 0; overflow: hidden;
+  animation: gridMove 20s linear infinite;
+}
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
 }
 .bg-particles::before, .bg-particles::after {
   content: ''; position: absolute; width: 400px; height: 400px;
