@@ -314,7 +314,8 @@ io.on('connection', (socket) => {
     }
 
     // AI Semantic fallback omitted for brevity if no scripture match
-    if (!cardFound && aiExtractionEnabled) {
+    const settings = tenantSettings.get(tenantId) || {};
+    if (!cardFound && settings.aiExtractionEnabled) {
       // Simplified NLP / AI logic to save length
     }
   });

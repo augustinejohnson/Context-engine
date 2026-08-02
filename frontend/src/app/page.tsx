@@ -1465,6 +1465,14 @@ export default function ContextEngineDashboard() {
           }}>
             🌐 Translate {graphicsSettings.translationEnabled ? "ON" : "OFF"}
           </button>
+          <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} onClick={() => {
+            const newSettings = {...graphicsSettings, aiExtractionEnabled: !graphicsSettings.aiExtractionEnabled};
+            setGraphicsSettings(newSettings);
+            socketRef.current?.emit("update_settings", newSettings);
+            localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
+          }}>
+            🤖 AI Extraction {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
+          </button>
           <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} onClick={toggleAudio}>
             {audioEnabled ? "🎙️" : "🔇"} Audio {audioEnabled ? "ON" : "OFF"}
           </button>
