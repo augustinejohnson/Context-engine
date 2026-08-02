@@ -895,113 +895,7 @@ export default function ContextEngineDashboard() {
                 {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
               </button>
             </div>
-            <div className="setting-item">
-              <label>AI Provider</label>
-              <select
-                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                value={graphicsSettings.aiProvider}
-                onChange={(e) => {
-                  const newProvider = e.target.value;
-                  let defaultModel = "google/gemini-1.5-flash";
-                  let defaultBaseUrl = "https://openrouter.ai/api/v1";
-                  if (newProvider === "openai") { defaultModel = "gpt-4o-mini"; defaultBaseUrl = "https://api.openai.com/v1"; }
-                  else if (newProvider === "gemini") { defaultModel = "gemini-1.5-flash"; defaultBaseUrl = ""; }
-                  else if (newProvider === "anthropic") { defaultModel = "claude-3-5-sonnet-latest"; defaultBaseUrl = ""; }
-                  setGraphicsSettings({ ...graphicsSettings, aiProvider: newProvider, aiModel: defaultModel, aiBaseUrl: defaultBaseUrl });
-                }}
-              >
-                <option value="openrouter">OpenRouter (Recommended)</option>
-                <option value="openai">OpenAI (Native)</option>
-                <option value="gemini">Google Gemini (Native)</option>
-                <option value="anthropic">Anthropic Claude (Native)</option>
-              </select>
-            </div>
-            <div className="setting-item">
-              <label>API Key</label>
-              <input
-                type="password"
-                placeholder="Enter API Key"
-                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                value={graphicsSettings.openAIApiKey}
-                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, openAIApiKey: e.target.value })}
-              />
-            </div>
-            {(graphicsSettings.aiProvider === "openrouter" || graphicsSettings.aiProvider === "openai") && (
-              <div className="setting-item">
-                <label>API Base URL</label>
-                <input
-                  type="text"
-                  placeholder="https://openrouter.ai/api/v1"
-                  style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                  value={graphicsSettings.aiBaseUrl}
-                  onChange={(e) => setGraphicsSettings({ ...graphicsSettings, aiBaseUrl: e.target.value })}
-                />
-              </div>
-            )}
-            <div className="setting-item">
-              <label>Model Name (Type or Select)</label>
-              {graphicsSettings.aiProvider === 'openrouter' ? (
-                <select 
-                  style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                  value={graphicsSettings.aiModel} 
-                  onChange={(e) => setGraphicsSettings({ ...graphicsSettings, aiModel: e.target.value })}
-                >
-                  <option value="">Select a model...</option>
-                  {availableAiModels.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
-                  <select 
-                    style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                    value={
-                      graphicsSettings.aiProvider === 'gemini' 
-                        ? (['gemini-1.5-flash', 'gemini-1.5-pro'].includes(graphicsSettings.aiModel) ? graphicsSettings.aiModel : 'custom')
-                        : graphicsSettings.aiProvider === 'openai'
-                        ? (['gpt-4o-mini', 'gpt-4o', 'o1-preview', 'o1-mini'].includes(graphicsSettings.aiModel) ? graphicsSettings.aiModel : 'custom')
-                        : graphicsSettings.aiProvider === 'anthropic'
-                        ? (['claude-3-5-sonnet-latest', 'claude-3-opus-latest'].includes(graphicsSettings.aiModel) ? graphicsSettings.aiModel : 'custom')
-                        : 'custom'
-                    }
-                    onChange={(e) => {
-                      if (e.target.value !== 'custom') {
-                        setGraphicsSettings({ ...graphicsSettings, aiModel: e.target.value });
-                      }
-                    }}
-                  >
-                    {graphicsSettings.aiProvider === 'gemini' && (
-                      <>
-                        <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
-                        <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
-                      </>
-                    )}
-                    {graphicsSettings.aiProvider === 'openai' && (
-                      <>
-                        <option value="gpt-4o-mini">GPT-4o Mini</option>
-                        <option value="gpt-4o">GPT-4o</option>
-                        <option value="o1-preview">o1 Preview</option>
-                        <option value="o1-mini">o1 Mini</option>
-                      </>
-                    )}
-                    {graphicsSettings.aiProvider === 'anthropic' && (
-                      <>
-                        <option value="claude-3-5-sonnet-latest">Claude 3.5 Sonnet</option>
-                        <option value="claude-3-opus-latest">Claude 3 Opus</option>
-                      </>
-                    )}
-                    <option value="custom">Custom (Type below)</option>
-                  </select>
-                  <input 
-                    type="text" 
-                    style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px", borderRadius: "6px", width: "100%" }}
-                    value={graphicsSettings.aiModel}
-                    onChange={(e) => setGraphicsSettings({ ...graphicsSettings, aiModel: e.target.value })}
-                    placeholder="Or type manual model name..."
-                  />
-                </div>
-              )}
-            </div>
+
             <div className="setting-item">
               <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
                 <input 
@@ -1513,6 +1407,12 @@ export default function ContextEngineDashboard() {
           </button>
           <button className="toggle-btn" onClick={() => setSettingsOpen(true)}>
             ⚙️ Settings
+          </button>
+          <button className="toggle-btn" style={{ color: "#ef4444" }} onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}>
+            🚪 Sign Out
           </button>
         </div>
       </header>
