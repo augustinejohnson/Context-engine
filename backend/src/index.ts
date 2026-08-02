@@ -824,6 +824,14 @@ app.get('/api/admin/analytics', adminCheck, async (req, res) => {
   }
 });
 
+// Serve frontend static files (from Docker container)
+const frontendPath = path.join(__dirname, '../../frontend/out');
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0';
 server.listen(Number(PORT), HOST, () => {

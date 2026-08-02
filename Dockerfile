@@ -1,8 +1,21 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY backend/package*.json ./
-RUN npm install
-COPY backend/ ./
-RUN npm run build
+
+# 1. Build frontend
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+# 2. Build backend
+COPY backend/package*.json ./backend/
+RUN cd backend && npm install
+COPY backend/ ./backend/
+RUN cd backend && npm run build
+
+# 3. Expose backend port
 EXPOSE 3001
+
+# 4. Start backend
+WORKDIR /app/backend
 CMD ["npm", "start"]
