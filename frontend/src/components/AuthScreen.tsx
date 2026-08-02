@@ -34,7 +34,7 @@ export default function AuthScreen({ onLogin, onClose }: { onLogin: () => void, 
           }
         });
         if (error) throw error;
-        setSuccessMsg("Registration successful! You can now log in.");
+        setSuccessMsg("Registration successful! Please check your email inbox (and spam folder) to confirm your account before logging in.");
         setIsLogin(true);
       }
     } catch (err: any) {
