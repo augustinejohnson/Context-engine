@@ -44,6 +44,7 @@ export interface GraphicsSettings {
   outputBgColor2: string;
   speechLanguage: string;
   aiExtractionTarget: "all" | "scriptures" | "knowledge";
+  aiExtractionEnabled: boolean;
   lyricsModeEnabled: boolean;
   translationEnabled: boolean;
   translationTarget: string;
@@ -148,6 +149,7 @@ export default function ContextEngineDashboard() {
     outputBgColor2: "#1a1a2e",
     speechLanguage: "en-NG",
     aiExtractionTarget: "all",
+    aiExtractionEnabled: false,
     lyricsModeEnabled: false,
     translationEnabled: false,
     translationTarget: "Spanish",

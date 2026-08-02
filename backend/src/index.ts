@@ -187,6 +187,11 @@ io.on('connection', (socket) => {
   console.log(`[Socket.io] Client connected: ${socket.id} (Tenant: ${(socket as any).tenantId})`);
   const tenantId = (socket as any).tenantId;
 
+  // Send initial data to client
+  supabase.from('songs').select('*').eq('tenant_id', tenantId).then(({ data }) => {
+    socket.emit('songs_list', data || []);
+  });
+
   socket.on('audio_start', () => {
     console.log('[Audio] Starting mock STT...');
     startMockStt(socket);
