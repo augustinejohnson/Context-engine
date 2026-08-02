@@ -50,7 +50,7 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEnd
     <div className="auth-container">
       <div className="bg-particles"></div>
       
-      <div className="subscription-card glass-panel" style={{ maxWidth: '600px', width: '100%' }}>
+      <div className="subscription-card glass-panel" style={{ maxWidth: '600px', width: '100%', position: 'relative', zIndex: 10 }}>
         <h2 className="auth-title gradient-text" style={{ textAlign: 'center', marginBottom: '10px' }}>Choose Your Plan</h2>
         <p style={{ textAlign: 'center', color: '#94a3b8', marginBottom: '30px' }}>
           {hasTrial 
