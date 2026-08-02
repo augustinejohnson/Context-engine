@@ -63,7 +63,37 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!session) return <div style={{ color: 'white', padding: '20px' }}>Please log in to access the Admin Dashboard.</div>;
+  if (!session) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#09090b', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Please log in with the Master Admin account to access the Admin Dashboard.</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel" style={{ width: '400px', maxWidth: '90vw', padding: '30px', position: 'relative' }}>
+            <h2 className="auth-title gradient-text" style={{ textAlign: 'center', marginBottom: '20px' }}>Admin Login</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+              const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+              const { error } = await supabase.auth.signInWithPassword({ email, password });
+              if (error) alert(error.message);
+              else window.location.reload();
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>Admin Email</label>
+                <input name="email" type="email" required className="glass-input" defaultValue="ronimationstudios@gmail.com" />
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>Password</label>
+                <input name="password" type="password" required className="glass-input" />
+              </div>
+              <button type="submit" className="glass-btn primary" style={{ width: '100%', marginTop: '10px' }}>Log In</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (session.user.email !== 'ronimationstudios@gmail.com') return <div style={{ color: 'white', padding: '20px' }}>Unauthorized. Only ronimationstudios@gmail.com can access this page.</div>;
 
   return (
