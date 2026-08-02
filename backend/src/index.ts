@@ -393,7 +393,7 @@ Text: "${text}"`;
         aiModel = globalSettings.ai_model || getDefaultModelForProvider(aiProvider);
         masterKey = globalSettings.api_key || globalSettings.openai_api_key || masterKey;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Global Settings] Error fetching settings (might not exist):', e.message);
     }
     
