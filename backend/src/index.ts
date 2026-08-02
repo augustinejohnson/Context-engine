@@ -295,7 +295,6 @@ io.on('connection', (socket) => {
     const scripture = detectScripture(text);
     if (scripture) {
       try {
-        const settings = tenantSettings.get(tenantId) || {};
         const version = settings.defaultBibleVersion || 'kjv';
         const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
         const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
@@ -319,7 +318,6 @@ io.on('connection', (socket) => {
     }
 
     // AI Semantic fallback
-    const settings = tenantSettings.get(tenantId) || {};
     if (!cardFound && settings.aiExtractionEnabled) {
       try {
         let aiProvider = 'openai';
