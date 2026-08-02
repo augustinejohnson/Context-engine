@@ -290,10 +290,94 @@ io.on('connection', (socket) => {
       }
     }
 
-    // AI Semantic fallback omitted for brevity if no scripture match
+    // AI Semantic fallback
     const settings = tenantSettings.get(tenantId) || {};
     if (!cardFound && settings.aiExtractionEnabled) {
-      // Simplified NLP / AI logic to save length
+      try {
+        let aiProvider = 'openai';
+        let aiModel = 'gpt-4o-mini';
+        let masterKey = '';
+        const { data: globalSettings } = await supabase.from('global_settings').select('*').single();
+        if (globalSettings) {
+          aiProvider = (globalSettings.ai_provider || 'openai').toLowerCase();
+          aiModel = globalSettings.ai_model || 'gpt-4o-mini';
+          masterKey = globalSettings.api_key || globalSettings.openai_api_key || '';
+        }
+
+        const apiKeyToUse = masterKey || settings.openAIApiKey;
+        
+        if (apiKeyToUse) {
+          const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
+If the user is quoting or referencing a scripture, extract it as type="scripture" (e.g. John 3:16). 
+If they state an important fact, quote, or knowledge point, extract it as type="knowledge".
+Return a JSON object with a single key 'data' containing an array of objects with 'type' (either 'scripture' or 'knowledge') and 'content' (the extracted text/reference). If nothing important, return {"data": []}.
+Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', only extract scriptures. If 'knowledge', only extract knowledge).
+
+Text: "${text}"`;
+
+          let jsonResponse = "[]";
+
+          if (aiProvider === 'gemini') {
+            const genAI = new GoogleGenAI({ apiKey: apiKeyToUse });
+            const response = await genAI.models.generateContent({
+              model: aiModel,
+              contents: prompt,
+            });
+            jsonResponse = response.text?.trim() || "[]";
+          } else {
+            // Default: OpenAI or compatible API
+            const openai = new OpenAI({ apiKey: apiKeyToUse });
+            const completion = await openai.chat.completions.create({
+              messages: [{ role: "user", content: prompt }],
+              model: aiModel,
+              response_format: { type: "json_object" }
+            });
+            // We asked for an array, but response_format json_object forces an object.
+            // So we just parse whatever comes back and extract the array if wrapped.
+            jsonResponse = completion.choices[0]?.message?.content?.trim() || "[]";
+          }
+
+          let parsed = [];
+          try {
+            // Strip markdown formatting if any
+            jsonResponse = jsonResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(jsonResponse);
+            if (!Array.isArray(parsed) && parsed.results) parsed = parsed.results;
+            if (!Array.isArray(parsed) && parsed.data) parsed = parsed.data;
+            if (!Array.isArray(parsed)) parsed = [];
+          } catch (e) {
+            console.error('[NLP-Live] Failed to parse AI JSON:', jsonResponse);
+          }
+
+          for (const item of parsed) {
+            if (item.type === 'scripture') {
+              // Try to resolve the scripture via bible-api
+              const version = settings.defaultBibleVersion || 'kjv';
+              const res = await fetch(`https://bible-api.com/${encodeURIComponent(item.content)}?translation=${version}`);
+              if (res.ok) {
+                const data = await res.json();
+                const card = {
+                  id: `card-${cardIdCounter++}`,
+                  type: 'scripture' as const,
+                  content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
+                  preset: 'full-screen' as const,
+                };
+                io.to(tenantId).emit('staging_card', card);
+              }
+            } else if (item.type === 'knowledge') {
+              const card = {
+                id: `card-${cardIdCounter++}`,
+                type: 'knowledge' as const,
+                content: item.content,
+                preset: 'lower-third' as const,
+              };
+              io.to(tenantId).emit('staging_card', card);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[NLP-Live] AI Extraction Error:', e);
+      }
     }
   });
 
