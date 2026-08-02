@@ -1153,8 +1153,10 @@ export default function ContextEngineDashboard() {
                 value={graphicsSettings.defaultBibleVersion}
                 onChange={(e) => setGraphicsSettings({ ...graphicsSettings, defaultBibleVersion: e.target.value })}
               >
-                <option value="KJV">KJV (King James Version)</option>
-                <option value="NIV">NIV (New International Version)</option>
+                <option value="kjv">KJV (King James Version)</option>
+                <option value="web">WEB (World English Bible)</option>
+                <option value="asv">ASV (American Standard Version)</option>
+                <option value="bbe">BBE (Bible in Basic English)</option>
               </select>
             </div>
             <div className="setting-item">

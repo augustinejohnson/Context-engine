@@ -110,13 +110,14 @@ async function startMockStt(socket: any) {
     // Actually, io.emit broadcasts to all. To be safe, emit to tenant room. 
     io.to(tenantId).emit('transcript_line', text);
 
-    // NLP Detection: Scriptures
     const scripture = detectScripture(text);
     if (scripture) {
       console.log(`[NLP] Scripture detected: ${JSON.stringify(scripture)}`);
       try {
+        const settings = tenantSettings.get(tenantId) || {};
+        const version = settings.defaultBibleVersion || 'kjv';
         const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}`);
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
         
         if (res.ok) {
           const data = await res.json();
@@ -266,8 +267,10 @@ io.on('connection', (socket) => {
     const scripture = detectScripture(text);
     if (scripture) {
       try {
+        const settings = tenantSettings.get(tenantId) || {};
+        const version = settings.defaultBibleVersion || 'kjv';
         const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}`);
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
         
         if (res.ok) {
           const data = await res.json();
