@@ -15,6 +15,19 @@ export default function AdminDashboard() {
   const [masterKey, setMasterKey] = useState('');
   const [aiProvider, setAiProvider] = useState('openai');
   const [aiModel, setAiModel] = useState('gpt-4o-mini');
+  const [openRouterModels, setOpenRouterModels] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch OpenRouter models dynamically
+    fetch('https://openrouter.ai/api/v1/models')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setOpenRouterModels(data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch OpenRouter models:", err));
+  }, []);
   const [newPassword, setNewPassword] = useState('');
   
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -194,38 +207,41 @@ export default function AdminDashboard() {
               </div>
               
               <div>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Model</label>
-                <select className="glass-input" value={aiModel} onChange={e => setAiModel(e.target.value)} style={{ cursor: 'pointer' }}>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Model (Search or select)</label>
+                <input 
+                  className="glass-input" 
+                  value={aiModel} 
+                  onChange={e => setAiModel(e.target.value)} 
+                  list="ai-model-list"
+                  placeholder="Type to search or enter a custom model..."
+                  style={{ width: '100%', padding: '10px 15px', color: '#000', background: 'rgba(255,255,255,0.9)' }}
+                />
+                <datalist id="ai-model-list">
                   {aiProvider === 'openai' && (
                     <>
-                      <option style={{ color: '#000' }} value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
-                      <option style={{ color: '#000' }} value="gpt-4o">GPT-4o (Powerful)</option>
-                      <option style={{ color: '#000' }} value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                      <option value="gpt-4o">GPT-4o (Powerful)</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                     </>
                   )}
                   {aiProvider === 'gemini' && (
                     <>
-                      <option style={{ color: '#000' }} value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                      <option style={{ color: '#000' }} value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                      <option style={{ color: '#000' }} value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                     </>
                   )}
                   {aiProvider === 'claude' && (
                     <>
-                      <option style={{ color: '#000' }} value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-                      <option style={{ color: '#000' }} value="claude-3-opus-20240229">Claude 3 Opus</option>
-                      <option style={{ color: '#000' }} value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                      <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                      <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                      <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
                     </>
                   )}
-                  {aiProvider === 'openrouter' && (
-                    <>
-                      <option style={{ color: '#000' }} value="openai/gpt-4o-mini">OpenAI: GPT-4o Mini</option>
-                      <option style={{ color: '#000' }} value="meta-llama/llama-3.1-70b-instruct">Meta: Llama 3.1 70B</option>
-                      <option style={{ color: '#000' }} value="meta-llama/llama-3.1-405b-instruct">Meta: Llama 3.1 405B</option>
-                      <option style={{ color: '#000' }} value="anthropic/claude-3.5-sonnet">Anthropic: Claude 3.5 Sonnet</option>
-                    </>
-                  )}
-                </select>
+                  {aiProvider === 'openrouter' && openRouterModels.map((model) => (
+                    <option key={model.id} value={model.id}>{model.name}</option>
+                  ))}
+                </datalist>
               </div>
 
               <div>
