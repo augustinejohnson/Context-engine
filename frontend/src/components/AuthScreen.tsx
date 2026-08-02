@@ -38,7 +38,12 @@ export default function AuthScreen({ onLogin, onClose }: { onLogin: () => void, 
         setIsLogin(true);
       }
     } catch (err: any) {
-      setErrorMsg(err.message);
+      console.error("Auth Error:", err);
+      let msg = err.message || JSON.stringify(err);
+      if (msg === "{}" || msg === "[object Object]") {
+        msg = "Registration failed. If you just configured Custom SMTP, please verify your sender email is verified in Resend and your API key is correct.";
+      }
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
