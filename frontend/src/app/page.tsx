@@ -903,21 +903,21 @@ export default function ContextEngineDashboard() {
               </div>
             )}
           </div>
-                    {/* Spoken Word (Live Captions) Mode Toggle */}
-              <div className="flex items-center justify-between mt-6 bg-white/5 p-4 rounded-xl border border-white/10">
-                <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    Spoken Word Mode
-                  </h3>
-                  <p className="text-sm text-gray-400">Instantly push all speech to screens as Live Captions</p>
-                </div>
-                <div 
-                  className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${graphicsSettings.spokenWordMode ? 'bg-purple-500' : 'bg-gray-600'}`}
-                  onClick={() => handleSettingChange("spokenWordMode", !graphicsSettings.spokenWordMode)}
-                >
-                  <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${graphicsSettings.spokenWordMode ? 'translate-x-7' : 'translate-x-0'}`} />
-                </div>
+            {/* Spoken Word (Live Captions) Mode Toggle */}
+            <div className="settings-section" style={{ marginTop: "20px" }}>
+              <h3>Spoken Word Mode</h3>
+              <div className="setting-item">
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={graphicsSettings.spokenWordMode} 
+                    onChange={(e) => handleSettingChange("spokenWordMode", e.target.checked)}
+                    style={{ width: "16px", height: "16px" }}
+                  />
+                  Enable Live Captions (Instantly push all speech to screens)
+                </label>
               </div>
+            </div>
 
               {/* Translation Toggle */}
           <div className="settings-section">
