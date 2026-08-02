@@ -58,6 +58,9 @@ export interface GraphicsSettings {
   vmixIp: string;
   vmixInput: string;
   spokenWordMode: boolean;
+  spokenWordPosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
+  lyricsPosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
+  scripturePosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
 }
 
 /* ── Web Speech API types ──────────────────────────────── */
@@ -157,8 +160,11 @@ export default function ContextEngineDashboard() {
     proPresenterPort: "20562",
     vmixEnabled: false,
     vmixIp: "127.0.0.1",
-    vmixInput: "Title 1",
+    vmixInput: "Title",
     spokenWordMode: false,
+    spokenWordPosition: "subtitle",
+    lyricsPosition: "lower-third",
+    scripturePosition: "full-screen",
   });
   
   const [songsList, setSongsList] = useState<{id: number, title: string, artist: string}[]>([]);
@@ -1167,6 +1173,42 @@ export default function ContextEngineDashboard() {
           
           <div className="settings-section">
             <h3>Content Settings</h3>
+            <div className="setting-item">
+              <label>Spoken Word Placement</label>
+              <select
+                value={graphicsSettings.spokenWordPosition}
+                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, spokenWordPosition: e.target.value as any })}
+              >
+                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-center">Top Center</option>
+                <option value="lower-third">Lower Third (Bottom Left)</option>
+                <option value="subtitle">Subtitle (Bottom Center)</option>
+              </select>
+            </div>
+            <div className="setting-item">
+              <label>Lyrics Placement</label>
+              <select
+                value={graphicsSettings.lyricsPosition}
+                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, lyricsPosition: e.target.value as any })}
+              >
+                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-center">Top Center</option>
+                <option value="lower-third">Lower Third (Bottom Left)</option>
+                <option value="subtitle">Subtitle (Bottom Center)</option>
+              </select>
+            </div>
+            <div className="setting-item">
+              <label>Scripture Placement</label>
+              <select
+                value={graphicsSettings.scripturePosition}
+                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, scripturePosition: e.target.value as any })}
+              >
+                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-center">Top Center</option>
+                <option value="lower-third">Lower Third (Bottom Left)</option>
+                <option value="subtitle">Subtitle (Bottom Center)</option>
+              </select>
+            </div>
             <div className="setting-item">
               <label>Default Bible Version</label>
               <select

@@ -230,6 +230,20 @@ io.on('connection', (socket) => {
       io.to(tenantId).emit('songs_list', songs || []);
       socket.emit('fetch_success', `Successfully fetched and imported "${songData.title}"!`);
 
+      // Automatically pop the first verse onto the staging area so they know it worked
+      if (songData.sections.length > 0) {
+        const settings = tenantSettings.get(tenantId) || {};
+        const firstSection = songData.sections[0];
+        const card = {
+          id: `card-${cardIdCounter++}`,
+          type: 'lyric' as const,
+          content: firstSection.text,
+          preset: settings.lyricsPosition || 'lower-third',
+          songSections: songData.sections.map(s => ({ name: s.section, text: s.text }))
+        };
+        io.to(tenantId).emit('staging_card', card);
+      }
+
     } catch (e: any) {
       console.error('[Auto-Fetch] Error:', e);
       socket.emit('fetch_error', `Could not fetch lyrics for "${title}". Error: ${e.message}`);
@@ -252,7 +266,7 @@ io.on('connection', (socket) => {
         id: `caption-${Date.now()}`,
         type: 'caption' as const,
         content: text,
-        preset: 'subtitle' as const,
+        preset: settings.spokenWordPosition || 'subtitle',
       };
       
       // Instantly push to frontend live broadcast screen
@@ -327,7 +341,7 @@ io.on('connection', (socket) => {
               id: `card-${cardIdCounter++}`,
               type: 'lyric' as const,
               content: bestMatch.text,
-              preset: 'lower-third' as const,
+              preset: settings.lyricsPosition || 'lower-third',
               songSections: songSections
             };
             io.to(tenantId).emit('staging_card', card);
@@ -354,7 +368,7 @@ io.on('connection', (socket) => {
             id: `card-${cardIdCounter++}`,
             type: 'scripture' as const,
             content: cardContent,
-            preset: 'full-screen' as const,
+            preset: settings.scripturePosition || 'full-screen',
           };
           io.to(tenantId).emit('staging_card', card);
           cardFound = true;
@@ -435,7 +449,7 @@ Text: "${text}"`;
                   id: `card-${cardIdCounter++}`,
                   type: 'scripture' as const,
                   content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
-                  preset: 'full-screen' as const,
+                  preset: settings.scripturePosition || 'full-screen',
                 };
                 io.to(tenantId).emit('staging_card', card);
               }
