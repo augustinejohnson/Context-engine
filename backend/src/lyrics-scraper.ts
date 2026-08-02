@@ -24,6 +24,8 @@ export async function fetchLyricsFromWeb(songTitle: string): Promise<{ title: st
         const match = href.match(/uddg=([^&]+)/);
         if (match) {
           geniusUrl = decodeURIComponent(match[1]);
+        } else {
+          geniusUrl = href;
         }
       }
     });

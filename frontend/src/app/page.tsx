@@ -911,7 +911,7 @@ export default function ContextEngineDashboard() {
                   <input 
                     type="checkbox" 
                     checked={graphicsSettings.spokenWordMode} 
-                    onChange={(e) => handleSettingChange("spokenWordMode", e.target.checked)}
+                    onChange={(e) => setGraphicsSettings({ ...graphicsSettings, spokenWordMode: e.target.checked })}
                     style={{ width: "16px", height: "16px" }}
                   />
                   Enable Live Captions (Instantly push all speech to screens)
