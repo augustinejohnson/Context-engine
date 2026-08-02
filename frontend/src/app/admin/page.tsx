@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
 
 interface User {
   id: string;
@@ -12,6 +13,13 @@ interface User {
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [masterKey, setMasterKey] = useState('');
+  const [aiProvider, setAiProvider] = useState('openai');
+  const [newPassword, setNewPassword] = useState('');
+  
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editTrialDate, setEditTrialDate] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
 
@@ -35,7 +43,8 @@ export default function AdminDashboard() {
       }
       if (settingsRes.ok) {
         const data = await settingsRes.json();
-        setMasterKey(data.openai_api_key || '');
+        setMasterKey(data.api_key || data.openai_api_key || '');
+        setAiProvider(data.ai_provider || 'openai');
       }
     } catch (e) {
       console.error(e);
@@ -44,7 +53,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateMasterKey = async (e: React.FormEvent) => {
+  const updateGlobalSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session) return;
     try {
@@ -54,10 +63,48 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ openai_api_key: masterKey })
+        body: JSON.stringify({ ai_provider: aiProvider, api_key: masterKey })
       });
-      if (res.ok) alert('Master API Key updated successfully');
-      else alert('Failed to update API key. Are you sure you are the master admin?');
+      if (res.ok) alert('Global Settings updated successfully!');
+      else alert('Failed to update settings. Are you the master admin?');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword) return;
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) alert(error.message);
+    else {
+      alert("Password updated successfully!");
+      setNewPassword('');
+    }
+  };
+
+  const saveUserEdit = async () => {
+    if (!editingUser || !session) return;
+    try {
+      const res = await fetch('https://context-engine-production-51a1.up.railway.app/api/admin/update_user', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          userId: editingUser.id, 
+          subscription_status: editStatus, 
+          trial_ends_at: editTrialDate 
+        })
+      });
+      if (res.ok) {
+        alert('User updated successfully!');
+        setEditingUser(null);
+        fetchAdminData(session.access_token);
+      } else {
+        alert('Failed to update user.');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -94,55 +141,167 @@ export default function AdminDashboard() {
       </div>
     );
   }
+  
   if (session.user.email !== 'ronimationstudios@gmail.com') return <div style={{ color: 'white', padding: '20px' }}>Unauthorized. Only ronimationstudios@gmail.com can access this page.</div>;
 
   return (
-    <div className="admin-container">
-      <h1 className="admin-title gradient-text">Admin Dashboard</h1>
-      
-      <div className="admin-section glass-panel">
-        <h2 style={{ color: 'white' }}>Global Settings</h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '15px' }}>This OpenAI API Key will be used securely across the entire Corpus platform. Your users will never see it.</p>
-        <form onSubmit={updateMasterKey} className="admin-form" style={{ display: 'flex', gap: '10px' }}>
-          <input 
-            type="password" 
-            className="glass-input"
-            value={masterKey}
-            onChange={(e) => setMasterKey(e.target.value)}
-            placeholder="sk-proj-..."
-            style={{ maxWidth: '400px' }}
-          />
-          <button type="submit" className="glass-btn primary">Save Settings</button>
-        </form>
+    <div style={{ minHeight: '100vh', backgroundColor: '#09090b', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+      {/* Navigation */}
+      <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: '#16161a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+          <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">Corpus Admin</h1>
+          <Link href="/" style={{ color: '#a1a1aa', textDecoration: 'none' }}>Go to Dashboard</Link>
+        </div>
+        <button 
+          onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+          className="glass-btn" style={{ padding: '8px 16px', fontSize: '14px' }}>
+          Sign Out
+        </button>
+      </nav>
+
+      <div className="admin-container" style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '40px' }}>
+        
+        {/* Left Column: Settings & Security */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
+          
+          <div className="admin-section glass-panel">
+            <h2 style={{ color: 'white', marginBottom: '15px' }}>Global AI Settings</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '20px' }}>Select the AI provider and enter the master API key. This will be used globally for translations and knowledge extraction.</p>
+            <form onSubmit={updateGlobalSettings} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Provider</label>
+                <select className="glass-input" value={aiProvider} onChange={e => setAiProvider(e.target.value)} style={{ cursor: 'pointer' }}>
+                  <option value="openai">OpenAI (gpt-4o-mini)</option>
+                  <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
+                  <option value="claude">Anthropic Claude (claude-3-5-sonnet)</option>
+                  <option value="openrouter">OpenRouter (openai/gpt-4o-mini)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>API Key</label>
+                <input 
+                  type="password" 
+                  className="glass-input"
+                  value={masterKey}
+                  onChange={(e) => setMasterKey(e.target.value)}
+                  placeholder="Paste your API key here..."
+                />
+              </div>
+              <button type="submit" className="glass-btn primary" style={{ marginTop: '10px' }}>Save AI Settings</button>
+            </form>
+          </div>
+
+          <div className="admin-section glass-panel">
+            <h2 style={{ color: 'white', marginBottom: '15px' }}>Admin Security</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '20px' }}>Update your master admin password.</p>
+            <form onSubmit={updateAdminPassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>New Password</label>
+                <input 
+                  type="password" 
+                  className="glass-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <button type="submit" className="glass-btn" style={{ marginTop: '10px' }}>Change Password</button>
+            </form>
+          </div>
+
+        </div>
+
+        {/* Right Column: User Management */}
+        <div style={{ flex: 2 }}>
+          <div className="admin-section glass-panel" style={{ height: '100%' }}>
+            <h2 style={{ color: 'white', marginBottom: '20px' }}>User Management</h2>
+            {loading ? <p style={{ color: '#94a3b8' }}>Loading users...</p> : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Email</th>
+                      <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Status</th>
+                      <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Trial Ends</th>
+                      <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '12px', fontSize: '0.9rem' }}>{u.email || u.id}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ 
+                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
+                            background: u.subscription_status === 'active' || u.subscription_status === 'lifetime' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: u.subscription_status === 'active' || u.subscription_status === 'lifetime' ? '#10b981' : '#ef4444'
+                          }}>
+                            {u.subscription_status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '0.9rem', color: '#94a3b8' }}>
+                          {u.trial_ends_at ? new Date(u.trial_ends_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <button 
+                            className="glass-btn" 
+                            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                            onClick={() => {
+                              setEditingUser(u);
+                              setEditStatus(u.subscription_status);
+                              setEditTrialDate(u.trial_ends_at ? new Date(u.trial_ends_at).toISOString().slice(0, 16) : '');
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
-      <div className="admin-section glass-panel" style={{ marginTop: '20px' }}>
-        <h2 style={{ color: 'white' }}>User Management</h2>
-        {loading ? <p style={{ color: 'white' }}>Loading users...</p> : (
-          <table className="admin-table" style={{ color: 'white' }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Status</th>
-                <th>Trial Ends At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id}>
-                  <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{u.id}</td>
-                  <td>
-                    <span className={`badge ${u.subscription_status === 'active' ? 'badge-caption' : 'badge-knowledge'}`}>
-                      {u.subscription_status}
-                    </span>
-                  </td>
-                  <td>{u.trial_ends_at ? new Date(u.trial_ends_at).toLocaleString() : 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="glass-panel" style={{ width: '400px', padding: '30px' }}>
+            <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Edit User</h3>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>Status</label>
+              <select className="glass-input" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+                <option value="inactive">Inactive</option>
+                <option value="trial">Trial</option>
+                <option value="active">Active (Pro)</option>
+                <option value="lifetime">Lifetime</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>Trial Ends At</label>
+              <input 
+                type="datetime-local" 
+                className="glass-input"
+                value={editTrialDate}
+                onChange={e => setEditTrialDate(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="glass-btn primary" style={{ flex: 1 }} onClick={saveUserEdit}>Save Changes</button>
+              <button className="glass-btn" style={{ flex: 1 }} onClick={() => setEditingUser(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

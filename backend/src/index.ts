@@ -320,14 +320,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('push_live', async (cardData: any) => {
+    let aiProvider = 'openai';
     let masterKey = '';
     try {
-      const { data: globalSettings } = await supabase.from('global_settings').select('openai_api_key').single();
-      if (globalSettings?.openai_api_key) {
-        masterKey = globalSettings.openai_api_key;
+      const { data: globalSettings } = await supabase.from('global_settings').select('*').single();
+      if (globalSettings) {
+        aiProvider = (globalSettings.ai_provider || 'openai').toLowerCase();
+        masterKey = globalSettings.api_key || globalSettings.openai_api_key || '';
       }
     } catch (e) {
-      console.error('[Global Settings] Error fetching openai_api_key:', e);
+      console.error('[Global Settings] Error fetching settings:', e);
     }
     
     // Use master key instead of cardData.settings.openAIApiKey
@@ -338,22 +340,59 @@ io.on('connection', (socket) => {
 
     const settings = tenantSettings.get(tenantId) || {};
     
-    // Live Translation Engine (Gemini)
-    if (settings.translationEnabled && settings.translationTarget && cardData.content && settings.geminiApiKey) {
+    // Live Translation Engine (Dynamic Provider)
+    if (settings.translationEnabled && settings.translationTarget && cardData.content && apiKeyToUse) {
       try {
-        console.log(`[Translation] Translating to ${settings.translationTarget}...`);
-        const genAI = new GoogleGenAI({ apiKey: settings.geminiApiKey });
-        const response = await genAI.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: `Translate the following text to ${settings.translationTarget}. Provide ONLY the translation and nothing else:\n\n${cardData.content}`,
-        });
-        const translatedText = response.text?.trim() || "";
+        console.log(`[Translation] Translating to ${settings.translationTarget} via ${aiProvider}...`);
+        const prompt = `Translate the following text to ${settings.translationTarget}. Provide ONLY the translation and nothing else:\n\n${cardData.content}`;
+        let translatedText = "";
+
+        if (aiProvider === 'gemini') {
+          const genAI = new GoogleGenAI({ apiKey: apiKeyToUse });
+          const response = await genAI.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+          });
+          translatedText = response.text?.trim() || "";
+        } else if (aiProvider === 'claude' || aiProvider === 'anthropic') {
+          const anthropic = new Anthropic({ apiKey: apiKeyToUse });
+          const msg = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20240620',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }]
+          });
+          // @ts-ignore
+          translatedText = msg.content[0]?.text || "";
+        } else if (aiProvider === 'openrouter') {
+          const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKeyToUse}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "openai/gpt-4o-mini",
+              messages: [{ role: "user", content: prompt }]
+            })
+          });
+          const json = await res.json();
+          translatedText = json.choices[0]?.message?.content?.trim() || "";
+        } else {
+          // Default: OpenAI
+          const openai = new OpenAI({ apiKey: apiKeyToUse });
+          const completion = await openai.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "gpt-4o-mini",
+          });
+          translatedText = completion.choices[0]?.message?.content?.trim() || "";
+        }
+
         if (translatedText) {
           cardData.content = `${cardData.content}\n\n[${settings.translationTarget}] ${translatedText}`;
         }
       } catch (e: any) {
         console.error('[Translation Error]:', e);
-        socket.emit('toast_error', `Translation failed: ${e.message}`);
+        socket.emit('toast_error', `Translation failed via ${aiProvider}: ${e.message}`);
       }
     }
 
@@ -553,11 +592,16 @@ app.post('/api/admin/update_user', adminCheck, async (req, res) => {
 });
 
 app.post('/api/admin/settings', adminCheck, async (req, res) => {
-  const { openai_api_key } = req.body;
+  const { openai_api_key, ai_provider, api_key } = req.body;
   try {
+    const payload: any = {};
+    if (ai_provider !== undefined) payload.ai_provider = ai_provider;
+    if (api_key !== undefined) payload.api_key = api_key;
+    if (openai_api_key !== undefined) payload.openai_api_key = openai_api_key; // For backwards compatibility
+
     let { data, error } = await supabase
       .from('global_settings')
-      .update({ openai_api_key })
+      .update(payload)
       .eq('id', 1)
       .select()
       .single();
@@ -565,7 +609,7 @@ app.post('/api/admin/settings', adminCheck, async (req, res) => {
     if (error) {
       const insertRes = await supabase
         .from('global_settings')
-        .insert({ id: 1, openai_api_key })
+        .insert({ id: 1, ...payload })
         .select()
         .single();
       if (insertRes.error) throw insertRes.error;
@@ -582,6 +626,25 @@ app.get('/api/admin/settings', adminCheck, async (req, res) => {
     const { data, error } = await supabase.from('global_settings').select('*').single();
     if (error) throw error;
     res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/update_user', adminCheck, async (req, res) => {
+  const { userId, subscription_status, trial_ends_at } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update({ 
+        subscription_status, 
+        trial_ends_at: trial_ends_at ? new Date(trial_ends_at).toISOString() : null 
+      })
+      .eq('id', userId)
+      .select();
+    
+    if (error) throw error;
+    res.json({ success: true, data });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
