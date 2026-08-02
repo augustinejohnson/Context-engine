@@ -7,6 +7,7 @@ export default function AuthScreen({ onLogin, onClose }: { onLogin: () => void, 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [churchName, setChurchName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -109,15 +110,27 @@ export default function AuthScreen({ onLogin, onClose }: { onLogin: () => void, 
 
           <div>
             <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '6px' }}>Password</label>
-            <input 
-              type="password"
-              required
-              className="glass-input"
-              style={{ width: '100%', padding: '10px 15px', color: '#fff', background: 'rgba(0,0,0,0.3)' }}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showPassword ? "text" : "password"}
+                required
+                className="glass-input"
+                style={{ width: '100%', padding: '10px 15px', paddingRight: '40px', color: '#fff', background: 'rgba(0,0,0,0.3)' }}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ 
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer'
+                }}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
 
           {errorMsg && (

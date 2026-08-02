@@ -96,6 +96,9 @@ export default function AdminDashboard() {
   }, []);
   const [newPassword, setNewPassword] = useState('');
   
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editStatus, setEditStatus] = useState('');
   const [editTrialDate, setEditTrialDate] = useState('');
@@ -321,13 +324,26 @@ export default function AdminDashboard() {
 
               <div>
                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>API Key</label>
-                <input 
-                  type="password" 
-                  className="glass-input"
-                  value={masterKey}
-                  onChange={(e) => setMasterKey(e.target.value)}
-                  placeholder="Paste your API key here..."
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showApiKey ? "text" : "password"}
+                    className="glass-input"
+                    value={masterKey}
+                    onChange={(e) => setMasterKey(e.target.value)}
+                    placeholder="Paste your API key here..."
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    style={{ 
+                      position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer'
+                    }}
+                  >
+                    {showApiKey ? "🙈" : "👁️"}
+                  </button>
+                </div>
               </div>
               <button type="submit" className="glass-btn primary" style={{ marginTop: '10px' }}>Save AI Settings</button>
             </form>
@@ -339,15 +355,28 @@ export default function AdminDashboard() {
             <form onSubmit={updateAdminPassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>New Password</label>
-                <input 
-                  type="password" 
-                  className="glass-input"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  required
-                  minLength={6}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showAdminPassword ? "text" : "password"}
+                    className="glass-input"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    required
+                    minLength={6}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    style={{ 
+                      position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer'
+                    }}
+                  >
+                    {showAdminPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
               </div>
               <button type="submit" className="glass-btn" style={{ marginTop: '10px' }}>Change Password</button>
             </form>
