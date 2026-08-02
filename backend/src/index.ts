@@ -292,7 +292,54 @@ io.on('connection', (socket) => {
 
     let cardFound = false;
 
-    const scripture = detectScripture(text);
+    if (settings.lyricsModeEnabled) {
+      try {
+        const { data: lyricsRows } = await supabase.from('song_lyrics').select('*').eq('tenant_id', tenantId);
+        if (lyricsRows && lyricsRows.length > 0) {
+          const lowerText = text.toLowerCase();
+          let bestMatch: any = null;
+          let highestScore = 0;
+          
+          const textTokens = lowerText.split(/\s+/).filter(w => w.length > 2);
+          
+          if (textTokens.length >= 3) {
+            for (const row of lyricsRows) {
+              const lowerLyric = row.text.toLowerCase();
+              let matchedWords = 0;
+              for (const token of textTokens) {
+                if (lowerLyric.includes(token)) matchedWords++;
+              }
+              const score = matchedWords / textTokens.length;
+              if (score > highestScore) {
+                highestScore = score;
+                bestMatch = row;
+              }
+            }
+          }
+
+          if (bestMatch && highestScore >= 0.70) {
+            console.log(`[Music] Fuzzy match found! Score: ${highestScore.toFixed(2)}, Song: ${bestMatch.title}`);
+            const songSections = lyricsRows
+              .filter((r: any) => r.song_id === bestMatch.song_id)
+              .map((r: any) => ({ name: r.section, text: r.text }));
+
+            const card = {
+              id: `card-${cardIdCounter++}`,
+              type: 'lyric' as const,
+              content: bestMatch.text,
+              preset: 'lower-third' as const,
+              songSections: songSections
+            };
+            io.to(tenantId).emit('staging_card', card);
+            cardFound = true;
+          }
+        }
+      } catch (e) {
+        console.error('[Music] Error in fuzzy matching lyrics:', e);
+      }
+    }
+
+    const scripture = !cardFound ? detectScripture(text) : null;
     if (scripture) {
       try {
         const version = settings.defaultBibleVersion || 'kjv';
@@ -335,11 +382,11 @@ io.on('connection', (socket) => {
         
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
-If the user is quoting or referencing a scripture, extract the standard biblical reference as type="scripture" (e.g. John 3:16). Do NOT extract the quoted words, ONLY extract the formal Book Chapter:Verse reference!
-If they state an important fact, quote, or knowledge point, extract it as type="knowledge".
-If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
-Return a JSON object with a single key 'data' containing an array of objects with 'type' (either 'scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
-Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', only extract scriptures. If 'knowledge', only extract knowledge. If 'all', extract everything).
+1. If the user is quoting a scripture directly (e.g. "Who comforted us in all tribulations") OR referencing one (e.g. "1 Timothy 3:4"), identify the correct biblical reference and extract it as type="scripture". Do NOT extract the quoted words, ONLY extract the formal Book Chapter:Verse reference (e.g. "2 Corinthians 1:4").
+2. If the user states an important fact, deep quote, or general knowledge point, extract a concise summary of it as type="knowledge". Be aggressive in finding knowledge points if the mode allows it.
+3. If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
+Return a JSON object with a single key 'data' containing an array of objects with 'type' ('scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
+Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', ONLY extract scriptures. if 'knowledge', ONLY extract knowledge. if 'all', extract everything).
 
 Text: "${text}"`;
 

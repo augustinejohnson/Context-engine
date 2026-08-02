@@ -392,6 +392,10 @@ export default function ContextEngineDashboard() {
       setEditingSong(data);
     });
 
+    socketRef.current.on("live_card", (cardData: StagingCard) => {
+      setLiveContent({ content: cardData.content, preset: cardData.preset });
+    });
+
     return () => {
       socketRef.current?.disconnect();
     };
