@@ -321,11 +321,13 @@ io.on('connection', (socket) => {
 
   socket.on('push_live', async (cardData: any) => {
     let aiProvider = 'openai';
+    let aiModel = 'gpt-4o-mini';
     let masterKey = '';
     try {
       const { data: globalSettings } = await supabase.from('global_settings').select('*').single();
       if (globalSettings) {
         aiProvider = (globalSettings.ai_provider || 'openai').toLowerCase();
+        aiModel = globalSettings.ai_model || getDefaultModelForProvider(aiProvider);
         masterKey = globalSettings.api_key || globalSettings.openai_api_key || '';
       }
     } catch (e) {
@@ -340,24 +342,24 @@ io.on('connection', (socket) => {
 
     const settings = tenantSettings.get(tenantId) || {};
     
-    // Live Translation Engine (Dynamic Provider)
+    // Live Translation Engine (Dynamic Provider & Model)
     if (settings.translationEnabled && settings.translationTarget && cardData.content && apiKeyToUse) {
       try {
-        console.log(`[Translation] Translating to ${settings.translationTarget} via ${aiProvider}...`);
+        console.log(`[Translation] Translating to ${settings.translationTarget} via ${aiProvider} (${aiModel})...`);
         const prompt = `Translate the following text to ${settings.translationTarget}. Provide ONLY the translation and nothing else:\n\n${cardData.content}`;
         let translatedText = "";
 
         if (aiProvider === 'gemini') {
           const genAI = new GoogleGenAI({ apiKey: apiKeyToUse });
           const response = await genAI.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: aiModel,
             contents: prompt,
           });
           translatedText = response.text?.trim() || "";
         } else if (aiProvider === 'claude' || aiProvider === 'anthropic') {
           const anthropic = new Anthropic({ apiKey: apiKeyToUse });
           const msg = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20240620',
+            model: aiModel,
             max_tokens: 1024,
             messages: [{ role: 'user', content: prompt }]
           });
@@ -371,7 +373,7 @@ io.on('connection', (socket) => {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              model: "openai/gpt-4o-mini",
+              model: aiModel,
               messages: [{ role: "user", content: prompt }]
             })
           });
@@ -382,7 +384,7 @@ io.on('connection', (socket) => {
           const openai = new OpenAI({ apiKey: apiKeyToUse });
           const completion = await openai.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
-            model: "gpt-4o-mini",
+            model: aiModel,
           });
           translatedText = completion.choices[0]?.message?.content?.trim() || "";
         }
@@ -550,19 +552,24 @@ app.post('/api/verify_payment', async (req, res) => {
 
 // ---- Admin Middleware ----
 const adminCheck = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Missing auth token' });
-  
-  const token = authHeader.split(' ')[1];
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) return res.status(401).json({ error: 'Invalid token' });
-  
-  if (user.email !== 'ronimationstudios@gmail.com') {
-    return res.status(403).json({ error: 'Forbidden' });
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Missing token' });
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (user.email !== 'ronimationstudios@gmail.com') return res.status(403).json({ error: 'Forbidden' });
+    next();
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
-  
-  next();
 };
+
+function getDefaultModelForProvider(provider: string) {
+  if (provider === 'gemini') return 'gemini-2.5-flash';
+  if (provider === 'claude') return 'claude-3-5-sonnet-20240620';
+  if (provider === 'openrouter') return 'openai/gpt-4o-mini';
+  return 'gpt-4o-mini';
+}
 
 // ---- Admin Endpoints ----
 app.get('/api/admin/users', adminCheck, async (req, res) => {
@@ -592,10 +599,11 @@ app.post('/api/admin/update_user', adminCheck, async (req, res) => {
 });
 
 app.post('/api/admin/settings', adminCheck, async (req, res) => {
-  const { openai_api_key, ai_provider, api_key } = req.body;
+  const { openai_api_key, ai_provider, ai_model, api_key } = req.body;
   try {
     const payload: any = {};
     if (ai_provider !== undefined) payload.ai_provider = ai_provider;
+    if (ai_model !== undefined) payload.ai_model = ai_model;
     if (api_key !== undefined) payload.api_key = api_key;
     if (openai_api_key !== undefined) payload.openai_api_key = openai_api_key;
 

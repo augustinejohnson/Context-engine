@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [masterKey, setMasterKey] = useState('');
   const [aiProvider, setAiProvider] = useState('openai');
+  const [aiModel, setAiModel] = useState('gpt-4o-mini');
   const [newPassword, setNewPassword] = useState('');
   
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -45,12 +46,26 @@ export default function AdminDashboard() {
         const data = await settingsRes.json();
         setMasterKey(data.api_key || data.openai_api_key || '');
         setAiProvider(data.ai_provider || 'openai');
+        setAiModel(data.ai_model || getDefaultModel(data.ai_provider || 'openai'));
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getDefaultModel = (provider: string) => {
+    if (provider === 'gemini') return 'gemini-2.5-flash';
+    if (provider === 'claude') return 'claude-3-5-sonnet-20240620';
+    if (provider === 'openrouter') return 'openai/gpt-4o-mini';
+    return 'gpt-4o-mini';
+  };
+
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const provider = e.target.value;
+    setAiProvider(provider);
+    setAiModel(getDefaultModel(provider));
   };
 
   const updateGlobalSettings = async (e: React.FormEvent) => {
@@ -63,7 +78,7 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ ai_provider: aiProvider, api_key: masterKey })
+        body: JSON.stringify({ ai_provider: aiProvider, ai_model: aiModel, api_key: masterKey })
       });
       if (res.ok) alert('Global Settings updated successfully!');
       else alert('Failed to update settings. Are you the master admin?');
@@ -166,17 +181,53 @@ export default function AdminDashboard() {
           
           <div className="admin-section glass-panel">
             <h2 style={{ color: 'white', marginBottom: '15px' }}>Global AI Settings</h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '20px' }}>Select the AI provider and enter the master API key. This will be used globally for translations and knowledge extraction.</p>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '20px' }}>Select the AI provider and model. This will be used globally for translations and knowledge extraction.</p>
             <form onSubmit={updateGlobalSettings} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Provider</label>
-                <select className="glass-input" value={aiProvider} onChange={e => setAiProvider(e.target.value)} style={{ cursor: 'pointer' }}>
-                  <option value="openai">OpenAI (gpt-4o-mini)</option>
-                  <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
-                  <option value="claude">Anthropic Claude (claude-3-5-sonnet)</option>
-                  <option value="openrouter">OpenRouter (openai/gpt-4o-mini)</option>
+                <select className="glass-input" value={aiProvider} onChange={handleProviderChange} style={{ cursor: 'pointer' }}>
+                  <option style={{ color: '#000' }} value="openai">OpenAI</option>
+                  <option style={{ color: '#000' }} value="gemini">Google Gemini</option>
+                  <option style={{ color: '#000' }} value="claude">Anthropic Claude</option>
+                  <option style={{ color: '#000' }} value="openrouter">OpenRouter</option>
                 </select>
               </div>
+              
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Model</label>
+                <select className="glass-input" value={aiModel} onChange={e => setAiModel(e.target.value)} style={{ cursor: 'pointer' }}>
+                  {aiProvider === 'openai' && (
+                    <>
+                      <option style={{ color: '#000' }} value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                      <option style={{ color: '#000' }} value="gpt-4o">GPT-4o (Powerful)</option>
+                      <option style={{ color: '#000' }} value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </>
+                  )}
+                  {aiProvider === 'gemini' && (
+                    <>
+                      <option style={{ color: '#000' }} value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                      <option style={{ color: '#000' }} value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                      <option style={{ color: '#000' }} value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    </>
+                  )}
+                  {aiProvider === 'claude' && (
+                    <>
+                      <option style={{ color: '#000' }} value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                      <option style={{ color: '#000' }} value="claude-3-opus-20240229">Claude 3 Opus</option>
+                      <option style={{ color: '#000' }} value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    </>
+                  )}
+                  {aiProvider === 'openrouter' && (
+                    <>
+                      <option style={{ color: '#000' }} value="openai/gpt-4o-mini">OpenAI: GPT-4o Mini</option>
+                      <option style={{ color: '#000' }} value="meta-llama/llama-3.1-70b-instruct">Meta: Llama 3.1 70B</option>
+                      <option style={{ color: '#000' }} value="meta-llama/llama-3.1-405b-instruct">Meta: Llama 3.1 405B</option>
+                      <option style={{ color: '#000' }} value="anthropic/claude-3.5-sonnet">Anthropic: Claude 3.5 Sonnet</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
               <div>
                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>API Key</label>
                 <input 
@@ -277,10 +328,10 @@ export default function AdminDashboard() {
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>Status</label>
               <select className="glass-input" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
-                <option value="inactive">Inactive</option>
-                <option value="trial">Trial</option>
-                <option value="active">Active (Pro)</option>
-                <option value="lifetime">Lifetime</option>
+                <option style={{ color: '#000' }} value="inactive">Inactive</option>
+                <option style={{ color: '#000' }} value="trial">Trial</option>
+                <option style={{ color: '#000' }} value="active">Active (Pro)</option>
+                <option style={{ color: '#000' }} value="lifetime">Lifetime</option>
               </select>
             </div>
 
