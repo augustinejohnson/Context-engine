@@ -115,28 +115,22 @@ async function startMockStt(socket: any) {
     if (scripture) {
       console.log(`[NLP] Scripture detected: ${JSON.stringify(scripture)}`);
       try {
-        const { data: row } = await supabase.from('bible_verses')
-          .select('*')
-          .ilike('book', `%${scripture.book}%`)
-          .eq('chapter', scripture.chapter)
-          .eq('verse', scripture.verse)
-          .eq('version', currentBibleVersion)
-          .eq('tenant_id', tenantId)
-          .limit(1)
-          .single();
-
-        if (row) {
+        const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}`);
+        
+        if (res.ok) {
+          const data = await res.json();
           const card = {
             id: `card-${cardIdCounter++}`,
             type: 'scripture' as const,
-            content: `${row.book} ${row.chapter}:${row.verse} (${row.version}) — ${row.text}`,
+            content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
             preset: 'full-screen' as const,
           };
           console.log(`[NLP] Emitting scripture card: ${card.content.substring(0, 50)}...`);
           io.to(tenantId).emit('staging_card', card);
         }
       } catch (e) {
-        console.error('[NLP] Error querying scripture:', e);
+        console.error('[NLP] Error fetching scripture from api:', e);
       }
     }
 
@@ -272,32 +266,12 @@ io.on('connection', (socket) => {
     const scripture = detectScripture(text);
     if (scripture) {
       try {
-        const { data: row } = await supabase.from('bible_verses')
-          .select('*')
-          .ilike('book', `%${scripture.book}%`)
-          .eq('chapter', scripture.chapter)
-          .eq('verse', scripture.verse)
-          .eq('version', currentBibleVersion)
-          .eq('tenant_id', tenantId)
-          .limit(1)
-          .single();
-
-        if (row) {
-          let cardContent = `${row.book} ${row.chapter}:${row.verse} (${row.version}) — ${row.text}`;
-          try {
-            const { data: xrefs } = await supabase.from('cross_references')
-              .select('to_book, to_chapter, to_verse')
-              .eq('from_book', row.book)
-              .eq('from_chapter', row.chapter)
-              .eq('from_verse', row.verse)
-              .eq('tenant_id', tenantId)
-              .order('votes', { ascending: false })
-              .limit(2);
-            if (xrefs && xrefs.length > 0) {
-              const refsString = xrefs.map((x: any) => `${x.to_book} ${x.to_chapter}:${x.to_verse}`).join(', ');
-              cardContent += `\n\nCross References: ${refsString}`;
-            }
-          } catch (xrefErr) {}
+        const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}`);
+        
+        if (res.ok) {
+          const data = await res.json();
+          let cardContent = `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
 
           const card = {
             id: `card-${cardIdCounter++}`,
@@ -309,7 +283,7 @@ io.on('connection', (socket) => {
           cardFound = true;
         }
       } catch (e) {
-        console.error('[NLP-Live] Error querying scripture:', e);
+        console.error('[NLP-Live] Error fetching scripture from api:', e);
       }
     }
 

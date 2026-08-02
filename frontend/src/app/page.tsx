@@ -271,11 +271,13 @@ export default function ContextEngineDashboard() {
 
   /* ── Socket.io setup ── */
   useEffect(() => {
+    if (!session?.access_token) return;
+
     const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
     
     socketRef.current = io(backendUrl, {
-      auth: { token: session?.access_token }
+      auth: { token: session.access_token }
     });
 
     socketRef.current.on("connect", () => {
@@ -391,7 +393,7 @@ export default function ContextEngineDashboard() {
     return () => {
       socketRef.current?.disconnect();
     };
-  }, []);
+  }, [session?.access_token]);
 
   /* ── Keyboard Shortcuts ── */
   useEffect(() => {
