@@ -335,7 +335,7 @@ io.on('connection', (socket) => {
         
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
-If the user is quoting or referencing a scripture, extract it as type="scripture" (e.g. John 3:16). 
+If the user is quoting or referencing a scripture, extract the standard biblical reference as type="scripture" (e.g. John 3:16). Do NOT extract the quoted words, ONLY extract the formal Book Chapter:Verse reference!
 If they state an important fact, quote, or knowledge point, extract it as type="knowledge".
 If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
 Return a JSON object with a single key 'data' containing an array of objects with 'type' (either 'scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
