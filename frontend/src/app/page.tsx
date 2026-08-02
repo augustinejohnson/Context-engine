@@ -176,8 +176,8 @@ export default function ContextEngineDashboard() {
       let { data, error } = await supabase.from('user_profiles').select('subscription_status, trial_ends_at').eq('id', userId).single();
       
       if (!data) {
-        // Auto-initialize 7-day trial
-        const res = await fetch('https://context-engine-production-51a1.up.railway.app/api/user/init_trial', {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
+        const res = await fetch(`${backendUrl}/api/user/init_trial`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         });

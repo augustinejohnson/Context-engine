@@ -686,7 +686,8 @@ app.post('/api/user/init_trial', async (req, res) => {
     if (error || !user) return res.status(401).json({ error: 'Invalid token' });
     
     // Check if profile exists
-    const { data: existing } = await supabase.from('user_profiles').select('id, church_name').eq('id', user.id).single();
+    const { data: existing, error: existingErr } = await supabase.from('user_profiles').select('id, church_name').eq('id', user.id).maybeSingle();
+    if (existingErr) throw existingErr;
     if (existing) {
       // If they have a church name in metadata but it's missing in the profile, update it
       if (user.user_metadata?.church_name && !existing.church_name) {
