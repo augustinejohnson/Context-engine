@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '../lib/supabaseClient';
 
-export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEndsAt }: { email: string, onSubscribeSuccess: () => void, trialEndsAt?: string }) {
+export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEndsAt, isExpired, onBack }: { email: string, onSubscribeSuccess: () => void, trialEndsAt?: string, isExpired?: boolean, onBack?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
 
@@ -52,6 +52,18 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEnd
     <div className="auth-container">
       <div className="bg-particles"></div>
       
+      {onBack && (
+        <div style={{ position: 'absolute', top: '20px', left: '30px', zIndex: 20 }}>
+          <button 
+            onClick={onBack}
+            className="glass-btn"
+            style={{ fontSize: '14px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+      )}
+
       <div style={{ position: 'absolute', top: '20px', right: '30px', zIndex: 20 }}>
         <button 
           onClick={async () => {
@@ -68,9 +80,10 @@ export default function SubscriptionScreen({ email, onSubscribeSuccess, trialEnd
       <div className="subscription-card glass-panel" style={{ maxWidth: '800px', width: '100%', position: 'relative', zIndex: 10 }}>
         <h2 className="auth-title gradient-text" style={{ textAlign: 'center', marginBottom: '10px' }}>Choose Your Plan</h2>
         <p style={{ textAlign: 'center', color: '#94a3b8', marginBottom: '30px' }}>
+          {isExpired && <span style={{ display: 'block', color: '#ef4444', fontWeight: 600, marginBottom: '10px' }}>Your trial has expired.</span>}
           {hasTrial 
-            ? `You have a free trial active until ${new Date(trialEndsAt).toLocaleDateString()}! Upgrade early to secure your price.` 
-            : `Your trial has expired. Upgrade to continue using Corpus.`}
+            ? `You have a free trial active until ${new Date(trialEndsAt!).toLocaleDateString()}! Upgrade early to secure your price.` 
+            : `Upgrade to continue using Corpus.`}
         </p>
         
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>

@@ -175,17 +175,30 @@ export default function ContextEngineDashboard() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(true);
   const [apiStatuses, setApiStatuses] = useState({ holyrics: 'offline', proPresenter: 'offline', vmix: 'offline' });
+  const [showSubscription, setShowSubscription] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    const fetchSub = async (userId: string) => {
-      const { data, error } = await supabase.from('user_profiles').select('subscription_status, trial_ends_at').eq('id', userId).single();
+    const fetchSub = async (userId: string, token: string) => {
+      let { data, error } = await supabase.from('user_profiles').select('subscription_status, trial_ends_at').eq('id', userId).single();
+      
+      if (!data) {
+        // Auto-initialize 7-day trial
+        const res = await fetch('https://context-engine-production-51a1.up.railway.app/api/user/init_trial', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const initData = await res.json();
+          if (initData.data) data = initData.data;
+        }
+      }
+
       if (data) {
-        const status = data.subscription_status || "inactive";
-        setSubStatus(status);
+        let status = data.subscription_status || "inactive";
         
         // Trial logic
         if (data.trial_ends_at) {
@@ -193,8 +206,11 @@ export default function ContextEngineDashboard() {
           if (trialEnds > new Date()) {
             setSubStatus(`trial_${data.trial_ends_at}`); // Encode trial date in status string for SubscriptionScreen to parse
             return;
+          } else if (status === 'trial') {
+            status = 'expired';
           }
         }
+        setSubStatus(status);
       } else {
         setSubStatus("inactive");
       }
@@ -202,7 +218,7 @@ export default function ContextEngineDashboard() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user?.id) fetchSub(session.user.id);
+      if (session?.user?.id) fetchSub(session.user.id, session.access_token);
       else setSubStatus("inactive");
     });
     
@@ -210,7 +226,7 @@ export default function ContextEngineDashboard() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user?.id) fetchSub(session.user.id);
+      if (session?.user?.id) fetchSub(session.user.id, session.access_token);
       else setSubStatus("inactive");
     });
     return () => subscription.unsubscribe();
@@ -758,9 +774,17 @@ export default function ContextEngineDashboard() {
     return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f172a', color: 'white'}}>Loading...</div>;
   }
 
+  if (subStatus === "expired") {
+    return <SubscriptionScreen email={session?.user?.email || ""} onSubscribeSuccess={() => setSubStatus("active")} isExpired={true} />;
+  }
+
   if (subStatus !== "active" && subStatus !== "lifetime" && !subStatus.startsWith("trial_")) {
+    return <SubscriptionScreen email={session?.user?.email || ""} onSubscribeSuccess={() => setSubStatus("active")} />;
+  }
+
+  if (showSubscription) {
     const trialEndsAt = subStatus.startsWith("trial_") ? subStatus.split("trial_")[1] : undefined;
-    return <SubscriptionScreen email={session?.user?.email || ""} onSubscribeSuccess={() => setSubStatus("active")} trialEndsAt={trialEndsAt} />;
+    return <SubscriptionScreen email={session?.user?.email || ""} onSubscribeSuccess={() => { setSubStatus("active"); setShowSubscription(false); }} trialEndsAt={trialEndsAt} onBack={() => setShowSubscription(false)} />;
   }
 
   return (
@@ -1440,6 +1464,11 @@ export default function ContextEngineDashboard() {
           </div>
         </h1>
         <div className="toggles-group">
+          {subStatus.startsWith('trial_') && (
+            <button className="toggle-btn" style={{ background: "rgba(234, 179, 8, 0.2)", border: "1px solid #eab308", color: "#fef08a", fontWeight: "bold" }} onClick={() => setShowSubscription(true)}>
+              ⭐ Subscribe
+            </button>
+          )}
           {!activeSessionId ? (
             <button className="toggle-btn" style={{ background: "rgba(34, 197, 94, 0.2)", border: "1px solid #22c55e", color: "#22c55e" }} onClick={() => socketRef.current?.emit('start_session')}>
               ▶ Start Session

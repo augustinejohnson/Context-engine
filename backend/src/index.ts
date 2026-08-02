@@ -677,6 +677,38 @@ app.post('/api/admin/update_user', adminCheck, async (req, res) => {
   }
 });
 
+// User Trial Initialization
+app.post('/api/user/init_trial', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Missing token' });
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    
+    // Check if profile exists
+    const { data: existing } = await supabase.from('user_profiles').select('id').eq('id', user.id).single();
+    if (existing) {
+      return res.json({ success: true, message: 'Profile already exists' });
+    }
+
+    const trialEnds = new Date();
+    trialEnds.setDate(trialEnds.getDate() + 7);
+
+    const { data, error: insertErr } = await supabase.from('user_profiles').insert({
+      id: user.id,
+      email: user.email,
+      subscription_status: 'trial',
+      trial_ends_at: trialEnds.toISOString()
+    }).select().single();
+
+    if (insertErr) throw insertErr;
+    res.json({ success: true, data });
+  } catch (e: any) {
+    console.error("Trial Init Error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0';
 server.listen(Number(PORT), HOST, () => {
