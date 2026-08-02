@@ -71,7 +71,8 @@ interface User {
   id: string;
   email: string;
   subscription_status: string;
-  trial_ends_at: string;
+  trial_ends_at: string | null;
+  church_name?: string;
 }
 
 export default function AdminDashboard() {
@@ -80,6 +81,7 @@ export default function AdminDashboard() {
   const [aiProvider, setAiProvider] = useState('openai');
   const [aiModel, setAiModel] = useState('gpt-4o-mini');
   const [openRouterModels, setOpenRouterModels] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState({ totalUsers: 0, activeConnections: 0 });
 
   useEffect(() => {
     // Fetch OpenRouter models dynamically
@@ -111,9 +113,10 @@ export default function AdminDashboard() {
 
   const fetchAdminData = async (token: string) => {
     try {
-      const [usersRes, settingsRes] = await Promise.all([
+      const [usersRes, settingsRes, analyticsRes] = await Promise.all([
         fetch('https://context-engine-production-51a1.up.railway.app/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('https://context-engine-production-51a1.up.railway.app/api/admin/settings', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('https://context-engine-production-51a1.up.railway.app/api/admin/settings', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('https://context-engine-production-51a1.up.railway.app/api/admin/analytics', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       
       if (usersRes.ok) {
@@ -124,6 +127,9 @@ export default function AdminDashboard() {
         setMasterKey(data.api_key || data.openai_api_key || '');
         setAiProvider(data.ai_provider || 'openai');
         setAiModel(data.ai_model || getDefaultModel(data.ai_provider || 'openai'));
+      }
+      if (analyticsRes.ok) {
+        setAnalytics(await analyticsRes.json());
       }
     } catch (e) {
       console.error(e);
@@ -251,10 +257,29 @@ export default function AdminDashboard() {
         </button>
       </nav>
 
-      <div className="admin-container" style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '40px' }}>
+      <div className="admin-container" style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '40px' }}>
         
-        {/* Left Column: Settings & Security */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        {/* Top Row: Analytics */}
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px' }}>
+            <h3 style={{ color: '#94a3b8', margin: '0 0 10px 0', fontSize: '1.1rem', fontWeight: 500 }}>Total Registered Users</h3>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#38bdf8', textShadow: '0 0 20px rgba(56, 189, 248, 0.4)' }}>
+              {analytics.totalUsers}
+            </div>
+          </div>
+          
+          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px' }}>
+            <h3 style={{ color: '#94a3b8', margin: '0 0 10px 0', fontSize: '1.1rem', fontWeight: 500 }}>Active Live Connections (Sockets)</h3>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#10b981', textShadow: '0 0 20px rgba(16, 185, 129, 0.4)' }}>
+              {analytics.activeConnections}
+            </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>Updates on page load</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '40px' }}>
+          {/* Left Column: Settings & Security */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
           
           <div className="admin-section glass-panel">
             <h2 style={{ color: 'white', marginBottom: '15px' }}>Global AI Settings</h2>
@@ -340,6 +365,7 @@ export default function AdminDashboard() {
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                       <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Email</th>
+                      <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Organization</th>
                       <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Status</th>
                       <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Trial Ends</th>
                       <th style={{ padding: '12px', color: '#94a3b8', fontWeight: 500 }}>Actions</th>
@@ -349,6 +375,7 @@ export default function AdminDashboard() {
                     {users.map(u => (
                       <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                         <td style={{ padding: '12px', fontSize: '0.9rem' }}>{u.email || u.id}</td>
+                        <td style={{ padding: '12px', fontSize: '0.9rem', color: '#cbd5e1' }}>{u.church_name || <span style={{ color: '#64748b', fontStyle: 'italic' }}>None</span>}</td>
                         <td style={{ padding: '12px' }}>
                           <span style={{ 
                             padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,

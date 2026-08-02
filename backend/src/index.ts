@@ -698,13 +698,30 @@ app.post('/api/user/init_trial', async (req, res) => {
       id: user.id,
       email: user.email,
       subscription_status: 'trial',
-      trial_ends_at: trialEnds.toISOString()
+      trial_ends_at: trialEnds.toISOString(),
+      church_name: user.user_metadata?.church_name || null
     }).select().single();
 
     if (insertErr) throw insertErr;
     res.json({ success: true, data });
   } catch (e: any) {
     console.error("Trial Init Error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin Analytics Endpoint
+app.get('/api/admin/analytics', adminCheck, async (req, res) => {
+  try {
+    const { count, error } = await supabase.from('user_profiles').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    
+    // io.engine.clientsCount provides the number of active raw socket connections.
+    const activeConnections = io.engine.clientsCount;
+
+    res.json({ totalUsers: count || 0, activeConnections });
+  } catch (e: any) {
+    console.error("Admin Analytics Error:", e);
     res.status(500).json({ error: e.message });
   }
 });
