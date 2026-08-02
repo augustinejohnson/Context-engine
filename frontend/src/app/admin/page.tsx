@@ -3,6 +3,70 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
+const SearchableDropdown = ({ value, onChange, options, placeholder }: { value: string, onChange: (val: string) => void, options: {label: string, value: string}[], placeholder: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  
+  const filteredOptions = options.filter(opt => 
+    opt.label.toLowerCase().includes(search.toLowerCase()) || 
+    opt.value.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedLabel = options.find(o => o.value === value)?.label || value;
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <input
+        className="glass-input"
+        style={{ width: '100%', padding: '10px 15px', color: '#000', background: 'rgba(255,255,255,0.9)', cursor: 'text' }}
+        placeholder={placeholder}
+        value={isOpen ? search : selectedLabel}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setIsOpen(true);
+          onChange(e.target.value); // Allow custom models if typed
+        }}
+        onFocus={() => {
+          setSearch('');
+          setIsOpen(true);
+        }}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+      />
+      <div 
+        style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#000', fontSize: '12px' }}
+      >
+        ▼
+      </div>
+      {isOpen && (
+        <div style={{ 
+          position: 'absolute', top: '100%', left: 0, right: 0, 
+          background: '#fff', border: '1px solid #ccc', borderRadius: '4px',
+          maxHeight: '300px', overflowY: 'auto', zIndex: 100,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}>
+          {filteredOptions.length > 0 ? filteredOptions.map(opt => (
+            <div 
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value);
+                setSearch('');
+                setIsOpen(false);
+              }}
+              style={{ padding: '10px 12px', color: '#000', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {opt.label}
+            </div>
+          )) : (
+            <div style={{ padding: '10px 12px', color: '#64748b' }}>No models found...</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface User {
   id: string;
   email: string;
@@ -208,40 +272,26 @@ export default function AdminDashboard() {
               
               <div>
                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '14px', marginBottom: '8px' }}>AI Model (Search or select)</label>
-                <input 
-                  className="glass-input" 
-                  value={aiModel} 
-                  onChange={e => setAiModel(e.target.value)} 
-                  list="ai-model-list"
-                  placeholder="Type to search or enter a custom model..."
-                  style={{ width: '100%', padding: '10px 15px', color: '#000', background: 'rgba(255,255,255,0.9)' }}
+                <SearchableDropdown
+                  value={aiModel}
+                  onChange={setAiModel}
+                  placeholder="Search or enter a custom model..."
+                  options={
+                    aiProvider === 'openai' ? [
+                      { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Fast)' },
+                      { value: 'gpt-4o', label: 'GPT-4o (Powerful)' },
+                      { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+                    ] : aiProvider === 'gemini' ? [
+                      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+                      { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+                      { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' }
+                    ] : aiProvider === 'claude' ? [
+                      { value: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet' },
+                      { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+                      { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
+                    ] : openRouterModels.map(m => ({ value: m.id, label: m.name }))
+                  }
                 />
-                <datalist id="ai-model-list">
-                  {aiProvider === 'openai' && (
-                    <>
-                      <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
-                      <option value="gpt-4o">GPT-4o (Powerful)</option>
-                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    </>
-                  )}
-                  {aiProvider === 'gemini' && (
-                    <>
-                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    </>
-                  )}
-                  {aiProvider === 'claude' && (
-                    <>
-                      <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-                      <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                      <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                    </>
-                  )}
-                  {aiProvider === 'openrouter' && openRouterModels.map((model) => (
-                    <option key={model.id} value={model.id}>{model.name}</option>
-                  ))}
-                </datalist>
               </div>
 
               <div>
