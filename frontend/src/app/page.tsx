@@ -529,9 +529,9 @@ export default function ContextEngineDashboard() {
         setAudioEnabled(false);
         recognitionRef.current = null;
       } else if (event.error === "network") {
-        alert("Network error: The browser's speech recognition service could not be reached. Check your internet connection.");
-        setAudioEnabled(false);
-        recognitionRef.current = null;
+        console.warn("[Speech] Network error detected. The API will silently retry in the background.");
+        // We purposefully DO NOT turn off audioEnabled here.
+        // We let the `onend` handler automatically try to restart the connection.
       }
     };
 
