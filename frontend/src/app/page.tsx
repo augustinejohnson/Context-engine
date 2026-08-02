@@ -39,12 +39,7 @@ export interface GraphicsSettings {
   exitAnimation: string;
   animationSpeed: number;
   defaultBibleVersion: string;
-  openAIApiKey: string;
-  aiExtractionEnabled: boolean;
-  aiProvider: string;
-  aiBaseUrl: string;
-  aiModel: string;
-  outputBgType: string;
+  outputBgType: "solid" | "transparent" | "chroma-green" | "chroma-blue" | "image" | "video";
   outputBgColor1: string;
   outputBgColor2: string;
   speechLanguage: string;
@@ -121,7 +116,7 @@ export default function ContextEngineDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [availableFonts, setAvailableFonts] = useState<string[]>(FALLBACK_FONTS);
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [availableAiModels, setAvailableAiModels] = useState<{id: string, name: string}[]>([]);
+  const [activeTab, setActiveTab] = useState<"settings" | "graphics" | "integrations">("settings");
 
   const [importSong, setImportSong] = useState({ title: "", artist: "", lyrics: "" });
   const [isFetchingSong, setIsFetchingSong] = useState(false);
@@ -144,11 +139,6 @@ export default function ContextEngineDashboard() {
     exitAnimation: "fade-out",
     animationSpeed: 400,
     defaultBibleVersion: "KJV",
-    openAIApiKey: "",
-    aiExtractionEnabled: false,
-    aiProvider: "openrouter",
-    aiBaseUrl: "https://openrouter.ai/api/v1",
-    aiModel: "google/gemini-1.5-flash",
     outputBgType: "solid",
     outputBgColor1: "#000000",
     outputBgColor2: "#1a1a2e",
@@ -264,18 +254,7 @@ export default function ContextEngineDashboard() {
     }
   }, [fontsLoaded]);
 
-  /* ── Fetch OpenRouter Models ── */
-  useEffect(() => {
-    fetch('https://openrouter.ai/api/v1/models')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const models = data.data.map((m: any) => ({ id: m.id, name: m.name })).sort((a: any, b: any) => a.name.localeCompare(b.name));
-          setAvailableAiModels(models);
-        }
-      })
-      .catch(err => console.error('[OpenRouter] Failed to fetch models:', err));
-  }, []);
+
 
   /* ── Load/Save Settings from LocalStorage ── */
   useEffect(() => {
@@ -283,9 +262,6 @@ export default function ContextEngineDashboard() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.aiModel && parsed.aiModel.includes('gemini') && !parsed.aiModel.includes('gemini-3')) {
-          parsed.aiModel = 'gemini-3-flash-preview';
-        }
         setGraphicsSettings(prev => ({ ...prev, ...parsed }));
       } catch (e) {
         console.error('Failed to parse saved settings', e);
