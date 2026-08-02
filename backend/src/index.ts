@@ -201,9 +201,10 @@ io.on('connection', (socket) => {
     // Future: Forward to real STT provider (Deepgram, Whisper)
   });
 
-  socket.on('auto_fetch_song', async (title: string) => {
+  const handleAutoFetchSong = async (title: string, tenantId: string, socket: any) => {
     try {
       console.log(`[Auto-Fetch] Scraping lyrics for: ${title}`);
+      socket.emit('fetch_success', `Fetching lyrics for: "${title}"...`);
       const songData = await fetchLyricsFromWeb(title);
       
       const { data: songRecord, error: songErr } = await supabase.from('songs')
@@ -233,12 +234,39 @@ io.on('connection', (socket) => {
       console.error('[Auto-Fetch] Error:', e);
       socket.emit('fetch_error', `Could not fetch lyrics for "${title}". Error: ${e.message}`);
     }
+  };
+
+  socket.on('auto_fetch_song', async (title: string) => {
+    await handleAutoFetchSong(title, tenantId, socket);
   });
 
   // ---- Real-time transcript from browser Web Speech API ----
   socket.on('transcript_text', async (text: string) => {
     console.log(`[STT-Live] "${text}"`);
     io.to(tenantId).emit('transcript_line', text);
+
+    const settings = tenantSettings.get(tenantId) || {};
+
+    if (settings.spokenWordMode) {
+      const liveCaptionCard = {
+        id: `caption-${Date.now()}`,
+        type: 'caption' as const,
+        content: text,
+        preset: 'subtitle' as const,
+      };
+      
+      // Instantly push to frontend live broadcast screen
+      io.to(tenantId).emit('live_card', liveCaptionCard);
+      
+      // Instantly push to ProPresenter/vMix if enabled
+      socket.emit('trigger_local_api', {
+        action: 'push_live',
+        content: text,
+        holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
+        proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
+        vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput }
+      });
+    }
 
     if (activeSessionId) {
       try {
@@ -311,8 +339,9 @@ io.on('connection', (socket) => {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
 If the user is quoting or referencing a scripture, extract it as type="scripture" (e.g. John 3:16). 
 If they state an important fact, quote, or knowledge point, extract it as type="knowledge".
-Return a JSON object with a single key 'data' containing an array of objects with 'type' (either 'scripture' or 'knowledge') and 'content' (the extracted text/reference). If nothing important, return {"data": []}.
-Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', only extract scriptures. If 'knowledge', only extract knowledge).
+If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
+Return a JSON object with a single key 'data' containing an array of objects with 'type' (either 'scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
+Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', only extract scriptures. If 'knowledge', only extract knowledge. If 'all', extract everything).
 
 Text: "${text}"`;
 
@@ -373,6 +402,10 @@ Text: "${text}"`;
                 preset: 'lower-third' as const,
               };
               io.to(tenantId).emit('staging_card', card);
+            } else if (item.type === 'song') {
+              console.log(`[NLP-Live] AI detected song lyrics: ${item.content}`);
+              // Use the helper to automatically fetch lyrics from Genius!
+              handleAutoFetchSong(item.content, tenantId, socket);
             }
           }
         }
