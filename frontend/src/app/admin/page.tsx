@@ -411,6 +411,7 @@ export default function AdminDashboard() {
         </div>
 
       </div>
+    </div>
 
       {/* Edit User Modal */}
       {editingUser && (
