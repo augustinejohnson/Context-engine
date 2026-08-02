@@ -303,6 +303,7 @@ io.on('connection', (socket) => {
           aiModel = globalSettings.ai_model || 'gpt-4o-mini';
           masterKey = globalSettings.api_key || globalSettings.openai_api_key || '';
         }
+        if (!masterKey) masterKey = process.env.OPENAI_API_KEY || '';
 
         const apiKeyToUse = masterKey || settings.openAIApiKey;
         
@@ -384,16 +385,16 @@ Text: "${text}"`;
   socket.on('push_live', async (cardData: any) => {
     let aiProvider = 'openai';
     let aiModel = 'gpt-4o-mini';
-    let masterKey = '';
+    let masterKey = process.env.OPENAI_API_KEY || '';
     try {
       const { data: globalSettings } = await supabase.from('global_settings').select('*').single();
       if (globalSettings) {
         aiProvider = (globalSettings.ai_provider || 'openai').toLowerCase();
         aiModel = globalSettings.ai_model || getDefaultModelForProvider(aiProvider);
-        masterKey = globalSettings.api_key || globalSettings.openai_api_key || '';
+        masterKey = globalSettings.api_key || globalSettings.openai_api_key || masterKey;
       }
     } catch (e) {
-      console.error('[Global Settings] Error fetching settings:', e);
+      console.error('[Global Settings] Error fetching settings (might not exist):', e.message);
     }
     
     // Use master key instead of cardData.settings.openAIApiKey
