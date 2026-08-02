@@ -597,26 +597,44 @@ app.post('/api/admin/settings', adminCheck, async (req, res) => {
     const payload: any = {};
     if (ai_provider !== undefined) payload.ai_provider = ai_provider;
     if (api_key !== undefined) payload.api_key = api_key;
-    if (openai_api_key !== undefined) payload.openai_api_key = openai_api_key; // For backwards compatibility
+    if (openai_api_key !== undefined) payload.openai_api_key = openai_api_key;
 
-    let { data, error } = await supabase
+    // First fetch the existing row to get its UUID
+    const { data: existingRow, error: fetchErr } = await supabase
       .from('global_settings')
-      .update(payload)
-      .eq('id', 1)
-      .select()
+      .select('*')
+      .limit(1)
       .single();
-      
-    if (error) {
-      const insertRes = await supabase
+
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      throw fetchErr;
+    }
+
+    let result;
+    if (existingRow) {
+      // Update using actual UUID
+      const { data, error } = await supabase
         .from('global_settings')
-        .insert({ id: 1, ...payload })
+        .update(payload)
+        .eq('id', existingRow.id)
         .select()
         .single();
-      if (insertRes.error) throw insertRes.error;
-      data = insertRes.data;
+      if (error) throw error;
+      result = data;
+    } else {
+      // Insert new row
+      const { data, error } = await supabase
+        .from('global_settings')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
     }
-    res.json(data);
+
+    res.json(result);
   } catch (e: any) {
+    console.error("Settings Update Error:", e);
     res.status(500).json({ error: e.message });
   }
 });
