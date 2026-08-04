@@ -533,7 +533,7 @@ io.on('connection', (socket) => {
               const card = {
                 id: `card-${cardIdCounter++}`,
                 type: 'knowledge' as const,
-                content: `**${row.keyword}**\n${row.fact}`,
+                content: `**${row.keyword}**\n${row.summary}`,
                 preset: settings.scripturePosition || 'full-screen',
               };
               io.to(tenantId).emit('staging_card', card);
