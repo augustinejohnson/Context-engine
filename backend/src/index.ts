@@ -18,9 +18,45 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  },
+  }
 });
+
+let cardIdCounter = 0;
+
+// Helper to fetch scripture locally or fallback to bible-api
+async function fetchScriptureLocalOrRemote(book: string, chapter: number, verse: number, tenantId: string, settings: any): Promise<string | null> {
+  try {
+    const { data: verses } = await supabase.from('bible_verses')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .ilike('book', `%${book}%`)
+      .eq('chapter', chapter)
+      .eq('verse', verse)
+      .limit(1);
+    
+    if (verses && verses.length > 0) {
+      const v = verses[0];
+      return `${v.book} ${v.chapter}:${v.verse} (${v.version.toUpperCase()}) — ${v.text}`;
+    }
+  } catch (e) {
+    console.error('[NLP] Error querying local bible_verses:', e);
+  }
+
+  try {
+    const version = settings.defaultBibleVersion || 'kjv';
+    const query = `${book} ${chapter}:${verse}`;
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
+    if (res.ok) {
+      const data = await res.json();
+      return `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
+    }
+  } catch (e) {
+    console.error('[NLP] Error querying bible-api:', e);
+  }
+  return null;
+}
+
+// Function to automatically fetch song from genius via background worker(express.json());
 
 app.use(cors());
 app.use(express.json());
@@ -377,6 +413,39 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---- Get Song Lyrics (for editing) ----
+  socket.on('get_song_lyrics', async (title: string) => {
+    try {
+      const { data: song } = await supabase.from('songs').select('*').eq('tenant_id', tenantId).eq('title', title).single();
+      if (!song) throw new Error("Song not found");
+      
+      const { data: lyrics } = await supabase.from('song_lyrics').select('*').eq('tenant_id', tenantId).eq('song_id', song.id);
+      let combinedLyrics = '';
+      if (lyrics) {
+        combinedLyrics = lyrics.map((l: any) => `[${l.section}]\n${l.text}`).join('\n\n');
+      }
+      socket.emit('song_lyrics_data', { title: song.title, artist: song.artist, lyrics: combinedLyrics });
+    } catch (e: any) {
+      console.error('[Songs] Error getting lyrics:', e);
+      socket.emit('fetch_error', `Failed to get lyrics for "${title}"`);
+    }
+  });
+
+  // ---- Delete Song ----
+  socket.on('delete_song', async (title: string) => {
+    try {
+      const { error } = await supabase.from('songs').delete().eq('tenant_id', tenantId).eq('title', title);
+      if (error) throw error;
+      console.log(`[Songs] Deleted song: ${title}`);
+      
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+    } catch (e: any) {
+      console.error('[Songs] Error deleting song:', e);
+      socket.emit('fetch_error', `Failed to delete "${title}"`);
+    }
+  });
+
   // ---- Get Songs List ----
   socket.on('get_songs', async () => {
     const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
@@ -485,14 +554,9 @@ io.on('connection', (socket) => {
     const scripture = !cardFound ? detectScripture(text) : null;
     if (scripture) {
       try {
-        const version = settings.defaultBibleVersion || 'kjv';
-        const query = `${scripture.book} ${scripture.chapter}:${scripture.verse}`;
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
+        const cardContent = await fetchScriptureLocalOrRemote(scripture.book, scripture.chapter, scripture.verse, tenantId, settings);
         
-        if (res.ok) {
-          const data = await res.json();
-          let cardContent = `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
-
+        if (cardContent) {
           const card = {
             id: `card-${cardIdCounter++}`,
             type: 'scripture' as const,
@@ -503,7 +567,7 @@ io.on('connection', (socket) => {
           cardFound = true;
         }
       } catch (e) {
-        console.error('[NLP-Live] Error fetching scripture from api:', e);
+        console.error('[NLP-Live] Error fetching scripture:', e);
       }
     }
 
@@ -569,15 +633,27 @@ Text: "${text}"`;
 
           for (const item of parsed) {
             if (item.type === 'scripture') {
-              // Try to resolve the scripture via bible-api
-              const version = settings.defaultBibleVersion || 'kjv';
-              const res = await fetch(`https://bible-api.com/${encodeURIComponent(item.content)}?translation=${version}`);
-              if (res.ok) {
-                const data = await res.json();
+              // Try to resolve the scripture locally, fallback to bible-api
+              // The AI returns content like "Matthew 18:32"
+              const match = item.content.match(/([1-3]?\s?[A-Za-z]+)\s+(\d+):(\d+)/);
+              let cardContent = null;
+              if (match) {
+                cardContent = await fetchScriptureLocalOrRemote(match[1].trim(), parseInt(match[2]), parseInt(match[3]), tenantId, settings);
+              } else {
+                 // Fallback if regex fails to parse AI format
+                 const version = settings.defaultBibleVersion || 'kjv';
+                 const res = await fetch(`https://bible-api.com/${encodeURIComponent(item.content)}?translation=${version}`);
+                 if (res.ok) {
+                   const data = await res.json();
+                   cardContent = `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
+                 }
+              }
+
+              if (cardContent) {
                 const card = {
                   id: `card-${cardIdCounter++}`,
                   type: 'scripture' as const,
-                  content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
+                  content: cardContent,
                   preset: settings.scripturePosition || 'full-screen',
                 };
                 io.to(tenantId).emit('staging_card', card);
@@ -1001,9 +1077,11 @@ app.post('/api/user/init_trial', async (req, res) => {
 // Admin Analytics Endpoint
 app.get('/api/admin/analytics', adminCheck, async (req, res) => {
   try {
-    const { count, error } = await supabase.from('user_profiles').select('id', { count: 'exact', head: true });
+    const { data: users, error } = await supabase.auth.admin.listUsers();
     if (error) throw error;
     
+    const count = users.users.length;
+
     // io.engine.clientsCount provides the number of active raw socket connections.
     const activeConnections = io.engine.clientsCount;
 
