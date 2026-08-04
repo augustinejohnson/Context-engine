@@ -5,7 +5,7 @@ import { io, Socket } from "socket.io-client";
 import { StagingCard } from "../page";
 
 export default function OutputPage() {
-  const [liveContent, setLiveContent] = useState<{ content: string; preset: "lower-third" | "full-screen" | "subtitle" | "top-center" } | null>(null);
+  const [liveContent, setLiveContent] = useState<{ content: string; preset: string } | null>(null);
   
   // Settings sync
   const [bgType, setBgType] = useState("transparent");
@@ -42,10 +42,15 @@ export default function OutputPage() {
 
   const getPresetClass = (preset: string) => {
     switch (preset) {
+      case "top-left": return "preset-top-left";
+      case "top-center": return "preset-top-center";
+      case "top-right": return "preset-top-right";
+      case "middle-left": return "preset-middle-left";
+      case "full-screen": return "preset-full-screen";
+      case "middle-right": return "preset-middle-right";
       case "lower-third": return "preset-lower-third";
       case "subtitle": return "preset-subtitle";
-      case "top-center": return "preset-top-center";
-      case "full-screen": return "preset-full-screen";
+      case "bottom-right": return "preset-bottom-right";
       default: return "preset-full-screen";
     }
   };

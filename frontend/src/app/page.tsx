@@ -10,7 +10,7 @@ const SubscriptionScreen = dynamic(() => import("../components/SubscriptionScree
 
 /* ── Types ─────────────────────────────────────────────── */
 type CardType = "scripture" | "knowledge" | "lyric";
-type PresetType = "lower-third" | "full-screen" | "subtitle";
+type PresetType = "lower-third" | "full-screen" | "subtitle" | "top-left" | "top-center" | "top-right" | "middle-left" | "middle-right" | "bottom-right";
 
 export interface StagingCard {
   id: string;
@@ -59,9 +59,9 @@ export interface GraphicsSettings {
   vmixIp: string;
   vmixInput: string;
   spokenWordMode: boolean;
-  spokenWordPosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
-  lyricsPosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
-  scripturePosition: "full-screen" | "lower-third" | "subtitle" | "top-center";
+  spokenWordPosition: PresetType;
+  lyricsPosition: PresetType;
+  scripturePosition: PresetType;
 }
 
 /* ── Web Speech API types ──────────────────────────────── */
@@ -485,6 +485,25 @@ export default function ContextEngineDashboard() {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript, interimText]);
 
+  /* ── Sync placement settings to Staging Queue ── */
+  useEffect(() => {
+    setStagingQueue((prev) => 
+      prev.map(card => {
+        if (card.type === 'scripture' && card.preset !== graphicsSettings.scripturePosition) {
+          return { ...card, preset: graphicsSettings.scripturePosition };
+        }
+        if (card.type === 'lyric' && card.preset !== graphicsSettings.lyricsPosition) {
+          return { ...card, preset: graphicsSettings.lyricsPosition };
+        }
+        if (card.type === 'knowledge' && card.preset !== graphicsSettings.scripturePosition) {
+          // Knowledge uses scripture position
+          return { ...card, preset: graphicsSettings.scripturePosition };
+        }
+        return card;
+      })
+    );
+  }, [graphicsSettings.scripturePosition, graphicsSettings.lyricsPosition]);
+
   /* ── Broadcast settings changes ── */
   useEffect(() => {
     if (socketRef.current) {
@@ -646,9 +665,15 @@ export default function ContextEngineDashboard() {
 
   const getPresetClass = (preset: string) => {
     switch (preset) {
+      case "top-left": return "preset-top-left";
+      case "top-center": return "preset-top-center";
+      case "top-right": return "preset-top-right";
+      case "middle-left": return "preset-middle-left";
       case "full-screen": return "preset-full-screen";
+      case "middle-right": return "preset-middle-right";
       case "lower-third": return "preset-lower-third";
       case "subtitle": return "preset-subtitle";
+      case "bottom-right": return "preset-bottom-right";
       default: return "preset-lower-third";
     }
   };
@@ -1181,10 +1206,15 @@ export default function ContextEngineDashboard() {
                 value={graphicsSettings.spokenWordPosition}
                 onChange={(e) => setGraphicsSettings({ ...graphicsSettings, spokenWordPosition: e.target.value as any })}
               >
-                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-left">Top Left</option>
                 <option value="top-center">Top Center</option>
-                <option value="lower-third">Lower Third (Bottom Left)</option>
-                <option value="subtitle">Subtitle (Bottom Center)</option>
+                <option value="top-right">Top Right</option>
+                <option value="middle-left">Middle Left</option>
+                <option value="full-screen">Middle Center</option>
+                <option value="middle-right">Middle Right</option>
+                <option value="lower-third">Bottom Left</option>
+                <option value="subtitle">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
               </select>
             </div>
             <div className="setting-item">
@@ -1193,10 +1223,15 @@ export default function ContextEngineDashboard() {
                 value={graphicsSettings.lyricsPosition}
                 onChange={(e) => setGraphicsSettings({ ...graphicsSettings, lyricsPosition: e.target.value as any })}
               >
-                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-left">Top Left</option>
                 <option value="top-center">Top Center</option>
-                <option value="lower-third">Lower Third (Bottom Left)</option>
-                <option value="subtitle">Subtitle (Bottom Center)</option>
+                <option value="top-right">Top Right</option>
+                <option value="middle-left">Middle Left</option>
+                <option value="full-screen">Middle Center</option>
+                <option value="middle-right">Middle Right</option>
+                <option value="lower-third">Bottom Left</option>
+                <option value="subtitle">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
               </select>
             </div>
             <div className="setting-item">
@@ -1205,10 +1240,15 @@ export default function ContextEngineDashboard() {
                 value={graphicsSettings.scripturePosition}
                 onChange={(e) => setGraphicsSettings({ ...graphicsSettings, scripturePosition: e.target.value as any })}
               >
-                <option value="full-screen">Center (Full Screen)</option>
+                <option value="top-left">Top Left</option>
                 <option value="top-center">Top Center</option>
-                <option value="lower-third">Lower Third (Bottom Left)</option>
-                <option value="subtitle">Subtitle (Bottom Center)</option>
+                <option value="top-right">Top Right</option>
+                <option value="middle-left">Middle Left</option>
+                <option value="full-screen">Middle Center</option>
+                <option value="middle-right">Middle Right</option>
+                <option value="lower-third">Bottom Left</option>
+                <option value="subtitle">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
               </select>
             </div>
             <div className="setting-item">
@@ -1509,9 +1549,15 @@ export default function ContextEngineDashboard() {
                   lang="en-NG"
                 />
                 <select className="card-preset" value={card.preset} onChange={(e) => handleCardPresetChange(card.id, e.target.value as PresetType)}>
-                  <option value="lower-third">Lower-Third Banner</option>
-                  <option value="full-screen">Full-Screen Centered</option>
-                  <option value="subtitle">Subtitle Overlay</option>
+                  <option value="top-left">Top Left</option>
+                  <option value="top-center">Top Center</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="middle-left">Middle Left</option>
+                  <option value="full-screen">Middle Center</option>
+                  <option value="middle-right">Middle Right</option>
+                  <option value="lower-third">Bottom Left</option>
+                  <option value="subtitle">Bottom Center</option>
+                  <option value="bottom-right">Bottom Right</option>
                 </select>
                 {card.type === "lyric" && card.songSections && (
                   <div style={{ padding: "10px 15px", display: "flex", gap: "8px", flexWrap: "wrap", background: "rgba(0,0,0,0.2)" }}>
