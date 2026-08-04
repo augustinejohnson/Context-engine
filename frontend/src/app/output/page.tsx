@@ -21,6 +21,10 @@ export default function OutputPage() {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
     socketRef.current = io(backendUrl);
 
+    socketRef.current.on("connect", () => {
+      socketRef.current?.emit("get_live_card");
+    });
+
     socketRef.current.on("live_card", (cardData: StagingCard) => {
       setLiveContent({ content: cardData.content, preset: cardData.preset });
     });

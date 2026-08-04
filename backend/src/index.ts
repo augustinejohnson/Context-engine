@@ -22,6 +22,8 @@ const io = new Server(server, {
 });
 
 let cardIdCounter = 0;
+const SERVER_BUILD_ID = Date.now().toString();
+const tenantLiveCards: Record<string, any> = {};
 
 // Helper to fetch scripture locally or fallback to bible-api
 async function fetchScriptureLocalOrRemote(book: string, chapter: number, verse: number, tenantId: string, settings: any): Promise<string | null> {
@@ -224,6 +226,20 @@ io.on('connection', (socket) => {
   const tenantId = (socket as any).tenantId;
 
   // Send initial data to client
+  socket.emit('server_info', { buildId: SERVER_BUILD_ID });
+  if (tenantLiveCards[tenantId]) {
+    socket.emit('live_card', tenantLiveCards[tenantId]);
+  }
+
+  // Handle get_live_card request from output screen
+  socket.on('get_live_card', () => {
+    if (tenantLiveCards[tenantId]) {
+      socket.emit('live_card', tenantLiveCards[tenantId]);
+    } else {
+      socket.emit('clear_live');
+    }
+  });
+
   supabase.from('songs').select('*').eq('tenant_id', tenantId).then(({ data }) => {
     socket.emit('songs_list', data || []);
   });
@@ -254,7 +270,6 @@ io.on('connection', (socket) => {
         .single();
         
       if (songErr || !songRecord) throw new Error("Failed to insert song into database.");
-
       for (const section of songData.sections) {
         await supabase.from('song_lyrics').insert({
           song_id: songRecord.id,
@@ -467,7 +482,10 @@ io.on('connection', (socket) => {
         preset: settings.spokenWordPosition || 'subtitle',
       };
       
-      // Instantly push to frontend live broadcast screen
+      // Update memory state
+      tenantLiveCards[tenantId] = liveCaptionCard;
+      
+      // Broadcast to all clients for this tenant (including the output page)
       io.to(tenantId).emit('live_card', liveCaptionCard);
       
       // Instantly push to ProPresenter/vMix if enabled
@@ -504,7 +522,32 @@ io.on('connection', (socket) => {
 
     let cardFound = false;
 
-    if (settings.lyricsModeEnabled) {
+    // 1. Check for manual Knowledge Base Keywords
+    if (!cardFound && keywords.length > 0) {
+      const lowerText = text.toLowerCase();
+      for (const kw of keywords) {
+        if (lowerText.includes(kw.toLowerCase())) {
+          try {
+            const { data: row } = await supabase.from('knowledge_cards').select('*').eq('keyword', kw).eq('tenant_id', tenantId).single();
+            if (row) {
+              const card = {
+                id: `card-${cardIdCounter++}`,
+                type: 'knowledge' as const,
+                content: `**${row.keyword}**\n${row.fact}`,
+                preset: settings.scripturePosition || 'full-screen',
+              };
+              io.to(tenantId).emit('staging_card', card);
+              cardFound = true;
+              break;
+            }
+          } catch (e) {
+            console.error('[NLP] Error fetching knowledge card:', e);
+          }
+        }
+      }
+    }
+
+    if (!cardFound && settings.lyricsModeEnabled) {
       try {
         const { data: lyricsRows } = await supabase.from('song_lyrics').select('*').eq('tenant_id', tenantId);
         if (lyricsRows && lyricsRows.length > 0) {
@@ -590,7 +633,7 @@ io.on('connection', (socket) => {
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
 1. If the user is quoting a scripture directly (e.g. "Who comforted us in all tribulations") OR referencing one (e.g. "1 Timothy 3:4"), identify the correct biblical reference and extract it as type="scripture". Do NOT extract the quoted words, ONLY extract the formal Book Chapter:Verse reference (e.g. "2 Corinthians 1:4").
-2. If the user states an important fact, deep quote, or general knowledge point, extract a concise summary of it as type="knowledge". Be aggressive in finding knowledge points if the mode allows it.
+2. If the user states an important fact, deep quote, or general knowledge point, extract a concise summary of it as type="knowledge". This applies to ALL fields of study (history, science, business, tech, sports, medicine), not just religion! Be highly aggressive in extracting general knowledge concepts.
 3. If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
 Return a JSON object with a single key 'data' containing an array of objects with 'type' ('scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
 Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', ONLY extract scriptures. if 'knowledge', ONLY extract knowledge. if 'all', extract everything).
@@ -673,8 +716,9 @@ Text: "${text}"`;
             }
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('[NLP-Live] AI Extraction Error:', e);
+        socket.emit('toast_error', `AI Extraction Failed: ${e.message || 'Rate limit or connection error'}`);
       }
     }
   });
@@ -758,6 +802,9 @@ Text: "${text}"`;
       }
     }
 
+    // Update memory state
+    tenantLiveCards[tenantId] = cardData;
+
     io.to(tenantId).emit('live_card', cardData);
 
     // Emit local API triggers back to the specific client's browser!
@@ -784,7 +831,9 @@ Text: "${text}"`;
     }
   });
 
-  socket.on('clear_live', () => {
+  // Clear Live
+  socket.on('clear_live', async () => {
+    delete tenantLiveCards[tenantId];
     io.to(tenantId).emit('clear_live');
     const settings = tenantSettings.get(tenantId) || {};
 

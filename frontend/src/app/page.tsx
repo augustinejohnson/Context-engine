@@ -176,6 +176,8 @@ export default function ContextEngineDashboard() {
   const [socketConnected, setSocketConnected] = useState(true);
   const [apiStatuses, setApiStatuses] = useState({ holyrics: 'offline', proPresenter: 'offline', vmix: 'offline' });
   const [showSubscription, setShowSubscription] = useState(false);
+  const [serverBuildId, setServerBuildId] = useState<string | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -277,7 +279,25 @@ export default function ContextEngineDashboard() {
         console.error('Failed to parse saved settings', e);
       }
     }
+    
+    // Restore stagingQueue and transcript
+    const savedQueue = localStorage.getItem('ce_stagingQueue');
+    if (savedQueue) {
+      try { setStagingQueue(JSON.parse(savedQueue)); } catch(e){}
+    }
+    const savedTranscript = localStorage.getItem('ce_transcript');
+    if (savedTranscript) {
+      try { setTranscript(JSON.parse(savedTranscript)); } catch(e){}
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('ce_stagingQueue', JSON.stringify(stagingQueue));
+  }, [stagingQueue]);
+
+  useEffect(() => {
+    localStorage.setItem('ce_transcript', JSON.stringify(transcript));
+  }, [transcript]);
 
   /* ── Socket.io setup ── */
   useEffect(() => {
@@ -305,6 +325,17 @@ export default function ContextEngineDashboard() {
     });
     socketRef.current.on("disconnect", () => {
       setSocketConnected(false);
+    });
+
+    socketRef.current.on("server_info", (info) => {
+      if (info.buildId) {
+        setServerBuildId((prevId) => {
+          if (prevId !== null && prevId !== info.buildId) {
+            setUpdateAvailable(true);
+          }
+          return info.buildId;
+        });
+      }
     });
     
     socketRef.current.on("session_status", (sessionId) => {
@@ -888,6 +919,18 @@ export default function ContextEngineDashboard() {
           box-shadow: ${starsMedium};
         }
       `}</style>
+      
+      {updateAvailable && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999999,
+          background: 'linear-gradient(90deg, #ef4444, #f97316)', color: 'white',
+          padding: '12px 20px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
+        }} onClick={() => window.location.reload()}>
+          ⚠️ An update is available! Click here to refresh and apply the update. Your queued items are safely saved.
+        </div>
+      )}
+
       <div className="app-container">
         {/* Settings Overlay */}
         <div className={`settings-overlay ${settingsOpen ? "open" : ""}`} onClick={() => setSettingsOpen(false)} />
