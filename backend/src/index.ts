@@ -73,7 +73,7 @@ let mockSttInterval: NodeJS.Timeout | null = null;
 const tenantSettings = new Map<string, any>();
 
 let currentLineIndex = 0;
-let cardIdCounter = 1;
+
 let currentBibleVersion = 'KJV';
 
 // ---- OpenAI State ----
