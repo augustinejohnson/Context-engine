@@ -259,6 +259,77 @@ io.on('connection', (socket) => {
     await handleAutoFetchSong(title, tenantId, socket);
   });
 
+  // ---- Manual Song Import (pasted lyrics) ----
+  socket.on('add_song', async (songData: { title: string; artist: string; lyrics: string }) => {
+    try {
+      console.log(`[Songs] Manually importing song: "${songData.title}"`);
+      
+      // Insert the song record
+      const { data: songRecord, error: songErr } = await supabase.from('songs')
+        .insert({ title: songData.title, artist: songData.artist || 'Unknown', tenant_id: tenantId })
+        .select()
+        .single();
+      
+      if (songErr || !songRecord) throw new Error("Failed to insert song: " + songErr?.message);
+
+      // Parse lyrics into sections (split by [Verse 1], [Chorus], etc.)
+      const lines = songData.lyrics.split('\n');
+      let currentSection = 'Verse 1';
+      let currentText = '';
+      const sections: { section: string; text: string }[] = [];
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        if (line.startsWith('[') && line.endsWith(']')) {
+          if (currentText.trim()) {
+            sections.push({ section: currentSection, text: currentText.trim() });
+          }
+          currentSection = line.replace('[', '').replace(']', '');
+          currentText = '';
+        } else {
+          currentText += line + '\n';
+        }
+      }
+      if (currentText.trim()) {
+        sections.push({ section: currentSection, text: currentText.trim() });
+      }
+
+      // If no section headers were found, treat the entire lyrics as one section
+      if (sections.length === 0) {
+        sections.push({ section: 'Full Song', text: songData.lyrics.trim() });
+      }
+
+      // Insert all sections into song_lyrics
+      for (const section of sections) {
+        await supabase.from('song_lyrics').insert({
+          song_id: songRecord.id,
+          title: songData.title,
+          artist: songData.artist || 'Unknown',
+          section: section.section,
+          text: section.text,
+          tenant_id: tenantId
+        });
+      }
+
+      console.log(`[Songs] Successfully imported "${songData.title}" with ${sections.length} sections.`);
+      
+      // Refresh the frontend's song list
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+      socket.emit('fetch_success', `Song "${songData.title}" imported with ${sections.length} sections!`);
+    } catch (e: any) {
+      console.error('[Songs] Error importing song:', e);
+      socket.emit('fetch_error', `Failed to import "${songData.title}": ${e.message}`);
+    }
+  });
+
+  // ---- Get Songs List ----
+  socket.on('get_songs', async () => {
+    const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+    socket.emit('songs_list', songs || []);
+  });
+
   // ---- Real-time transcript from browser Web Speech API ----
   socket.on('transcript_text', async (text: string) => {
     console.log(`[STT-Live] "${text}"`);
@@ -463,7 +534,7 @@ Text: "${text}"`;
                 id: `card-${cardIdCounter++}`,
                 type: 'knowledge' as const,
                 content: item.content,
-                preset: 'lower-third' as const,
+                preset: settings.scripturePosition || 'full-screen',
               };
               io.to(tenantId).emit('staging_card', card);
             } else if (item.type === 'song') {
