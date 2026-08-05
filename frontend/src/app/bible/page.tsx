@@ -109,6 +109,8 @@ export default function BibleBrowser() {
 
   const [session, setSession] = useState<any>(null);
   const verseListRef = useRef<HTMLDivElement>(null);
+  const numberBufferRef = useRef<string>("");
+  const numberBufferTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -196,24 +198,18 @@ export default function BibleBrowser() {
 
     switch (e.key) {
       case 'ArrowDown':
+      case 'ArrowRight':
         e.preventDefault();
         setSelectedVerseIndex(prev =>
           prev === null ? 0 : Math.min(prev + 1, bibleVerses.length - 1)
         );
         break;
       case 'ArrowUp':
+      case 'ArrowLeft':
         e.preventDefault();
         setSelectedVerseIndex(prev =>
           prev === null ? 0 : Math.max(prev - 1, 0)
         );
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        nextChapter();
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        prevChapter();
         break;
       case 'Enter':
         e.preventDefault();
@@ -235,6 +231,21 @@ export default function BibleBrowser() {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
           router.push('/');
+        }
+        break;
+      default:
+        // Handle number typing for quick verse jump
+        if (/[0-9]/.test(e.key)) {
+          numberBufferRef.current += e.key;
+          if (numberBufferTimeout.current) clearTimeout(numberBufferTimeout.current);
+          
+          numberBufferTimeout.current = setTimeout(() => {
+            const targetVerse = parseInt(numberBufferRef.current, 10);
+            if (!isNaN(targetVerse) && targetVerse >= 1 && targetVerse <= bibleVerses.length) {
+              setSelectedVerseIndex(targetVerse - 1);
+            }
+            numberBufferRef.current = "";
+          }, 600); // 600ms window to type multi-digit numbers
         }
         break;
     }
