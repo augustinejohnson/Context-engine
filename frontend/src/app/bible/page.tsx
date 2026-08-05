@@ -28,6 +28,11 @@ export default function BibleBrowser() {
 
   const [session, setSession] = useState<any>(null);
 
+  // NEW STATE for verse popup
+  const [versePopupOpen, setVersePopupOpen] = useState(false);
+  const [versePopupChapter, setVersePopupChapter] = useState<number | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -112,6 +117,17 @@ export default function BibleBrowser() {
     }
   }, [searchQuery, isSearching]);
 
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setVersePopupOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Keyboard Shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Don't trigger shortcuts if typing in search
@@ -163,7 +179,11 @@ export default function BibleBrowser() {
         break;
       case 'Escape':
         e.preventDefault();
-        clearLive();
+        if (versePopupOpen) {
+          setVersePopupOpen(false);
+        } else {
+          clearLive();
+        }
         break;
       case 'f':
         if (e.ctrlKey || e.metaKey) {
@@ -178,7 +198,7 @@ export default function BibleBrowser() {
         }
         break;
     }
-  }, [bibleVerses, searchResults, isSearching, selectedVerseIndex]);
+  }, [bibleVerses, searchResults, isSearching, selectedVerseIndex, versePopupOpen, router]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -236,8 +256,6 @@ export default function BibleBrowser() {
       setSelectedVerseIndex(selectedVerseIndex - 1);
     } else if (!isSearching) {
       prevChapter();
-      // It will load the prev chapter and automatically select index 0. 
-      // Ideally we would select the last verse, but it's loaded async.
     }
   };
 
@@ -280,7 +298,6 @@ export default function BibleBrowser() {
   };
 
   const activeBookData = bibleBooks.find(b => b.book === selectedBook);
-
   const displayedList = isSearching ? searchResults : bibleVerses;
 
   return (
@@ -327,10 +344,10 @@ export default function BibleBrowser() {
         </div>
       </header>
 
-      {/* 3 Columns */}
-      <div className="bible-columns">
+      {/* Layout - Now 2 Columns */}
+      <div className="bible-columns" style={{ display: 'flex' }}>
         {/* Books Column */}
-        <div className="bible-books-col">
+        <div className="bible-books-col" style={{ width: '220px', flexShrink: 0 }}>
           <div className="bible-testament-header">Books</div>
           {bibleBooks.map((b, i) => (
             <div 
@@ -341,6 +358,7 @@ export default function BibleBrowser() {
                 setSelectedChapter(1);
                 setIsSearching(false);
                 setSearchQuery("");
+                setVersePopupOpen(false);
               }}
             >
               <span>{b.book}</span>
@@ -349,59 +367,133 @@ export default function BibleBrowser() {
           ))}
         </div>
 
-        {/* Chapters Column */}
-        <div className="bible-chapters-col">
+        {/* Chapters & Verses Area */}
+        <div className="bible-chapters-col" style={{ flex: 1, position: 'relative', paddingRight: '20px' }}>
           {!isSearching && activeBookData && (
-            <>
-              <div style={{ marginBottom: '15px', color: '#c4b5fd', fontWeight: 'bold' }}>{activeBookData.book}</div>
-              <div className="bible-chapter-grid">
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <div style={{ color: '#c4b5fd', fontWeight: 'bold', fontSize: '1.2rem' }}>{activeBookData.book}</div>
+                <div className="bible-nav-arrows">
+                  <button className="glass-btn" onClick={prevChapter} title="Shortcut: ←">◀ Prev Chap</button>
+                  <button className="glass-btn" onClick={nextChapter} title="Shortcut: →">Next Chap ▶</button>
+                </div>
+              </div>
+              
+              <div className="bible-chapter-grid" style={{ position: 'relative' }}>
                 {Array.from({ length: activeBookData.chapters }, (_, i) => i + 1).map(c => (
                   <div 
                     key={c}
                     className={`bible-chapter-btn ${selectedChapter === c ? 'active' : ''}`}
-                    onClick={() => setSelectedChapter(c)}
+                    onClick={() => {
+                      setSelectedChapter(c);
+                      setVersePopupChapter(c);
+                      setVersePopupOpen(true);
+                    }}
                   >
                     {c}
                   </div>
                 ))}
+
+                {versePopupOpen && (
+                  <div ref={popupRef} className="verse-popup" style={{
+                    position: 'absolute',
+                    top: '60px',
+                    left: '0px',
+                    right: '0px',
+                    zIndex: 100,
+                    background: 'rgba(15, 23, 42, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                    padding: '20px',
+                    maxHeight: '400px',
+                    overflowY: 'auto'
+                  }}>
+                    <div className="verse-popup-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#c4b5fd' }}>{selectedBook} {versePopupChapter}</span>
+                      <button onClick={() => setVersePopupOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                    </div>
+                    <div className="verse-popup-list">
+                      {bibleVerses.length === 0 ? (
+                        <div style={{ color: '#a1a1aa' }}>Loading verses...</div>
+                      ) : (
+                        bibleVerses.map((v, i) => (
+                          <div
+                            key={v.verse}
+                            className={`verse-popup-item ${selectedVerseIndex === i ? 'selected' : ''}`}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              background: selectedVerseIndex === i ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+                              display: 'flex',
+                              gap: '10px',
+                              marginBottom: '4px'
+                            }}
+                            onClick={() => {
+                              setSelectedVerseIndex(i);
+                            }}
+                          >
+                            <span className="verse-popup-num" style={{ color: '#8b5cf6', minWidth: '25px', fontWeight: 'bold' }}>{v.verse}</span>
+                            <span>{v.text}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </>
+
+              {/* Preview Area Below Chapters */}
+              <div style={{ marginTop: '30px', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', flex: 1 }}>
+                <h3 style={{ marginTop: 0, color: '#c4b5fd', marginBottom: '15px', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Selection</h3>
+                {selectedVerseIndex !== null && bibleVerses[selectedVerseIndex] ? (
+                  <div style={{ fontSize: '1.3rem', lineHeight: '1.6' }}>
+                    <strong style={{ color: '#8b5cf6', marginRight: '10px' }}>{bibleVerses[selectedVerseIndex].verse}</strong>
+                    {bibleVerses[selectedVerseIndex].text}
+                  </div>
+                ) : (
+                  <div style={{ color: '#a1a1aa' }}>Select a verse to preview</div>
+                )}
+              </div>
+            </div>
           )}
+
           {isSearching && (
-            <div style={{ padding: '10px', color: '#a1a1aa' }}>
-              Showing search results for "{searchQuery}"
+            <div style={{ padding: '10px', color: '#a1a1aa', height: '100%', overflowY: 'auto' }}>
+              <div style={{ marginBottom: '20px', fontSize: '1.1rem' }}>Showing search results for <span style={{color: '#fff'}}>"{searchQuery}"</span></div>
+              
+              {searchResults.length === 0 ? (
+                <div style={{ textAlign: 'center', marginTop: '50px' }}>No results found.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {searchResults.map((v, i) => (
+                    <div 
+                      key={`${v.book}-${v.chapter}-${v.verse}`}
+                      className={`bible-verse-row ${selectedVerseIndex === i ? 'selected' : ''}`}
+                      onClick={() => setSelectedVerseIndex(i)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: selectedVerseIndex === i ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.05)',
+                        display: 'flex',
+                        gap: '15px',
+                        alignItems: 'flex-start'
+                      }}
+                    >
+                      <div className="bible-verse-num" style={{ color: '#8b5cf6', minWidth: '100px', fontWeight: 'bold' }}>
+                        {selectedVerseIndex === i ? '► ' : ''}
+                        {v.book} {v.chapter}:{v.verse}
+                      </div>
+                      <div style={{ flex: 1, lineHeight: '1.5' }}>{v.text}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-        </div>
-
-        {/* Verses Column */}
-        <div className="bible-verses-col">
-          {!isSearching && (
-            <div className="bible-nav-arrows">
-              <button className="glass-btn" onClick={prevChapter} title="Shortcut: ←">◀ Prev Chap</button>
-              <button className="glass-btn" onClick={nextChapter} title="Shortcut: →">Next Chap ▶</button>
-            </div>
-          )}
-
-          {displayedList.length === 0 && (
-            <div style={{ textAlign: 'center', marginTop: '50px', color: '#a1a1aa' }}>
-              {isSearching ? "No results found." : "Loading verses..."}
-            </div>
-          )}
-
-          {displayedList.map((v, i) => (
-            <div 
-              key={`${v.book}-${v.chapter}-${v.verse}`}
-              className={`bible-verse-row ${selectedVerseIndex === i ? 'selected' : ''}`}
-              onClick={() => setSelectedVerseIndex(i)}
-            >
-              <div className="bible-verse-num">
-                {selectedVerseIndex === i ? '► ' : ''}
-                {isSearching ? `${v.book} ${v.chapter}:${v.verse}` : v.verse}
-              </div>
-              <div style={{ flex: 1 }}>{v.text}</div>
-            </div>
-          ))}
         </div>
       </div>
 

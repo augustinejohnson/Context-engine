@@ -1493,24 +1493,24 @@ export default function ContextEngineDashboard() {
           </div>
         </h1>
         <div className="toggles-group">
-          <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B">
+          <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B" data-tooltip="Ctrl + B">
             📖 Bible
           </button>
           {subStatus.startsWith('trial_') && (
-            <button className="toggle-btn" style={{ background: "rgba(234, 179, 8, 0.2)", border: "1px solid #eab308", color: "#fef08a", fontWeight: "bold" }} onClick={() => setShowSubscription(true)}>
+            <button className="toggle-btn" data-tooltip="Upgrade Plan" style={{ background: "rgba(234, 179, 8, 0.2)", border: "1px solid #eab308", color: "#fef08a", fontWeight: "bold" }} onClick={() => setShowSubscription(true)}>
               ⭐ Subscribe
             </button>
           )}
           {!activeSessionId ? (
-            <button className="toggle-btn" style={{ background: "rgba(34, 197, 94, 0.2)", border: "1px solid #22c55e", color: "#22c55e" }} onClick={() => socketRef.current?.emit('start_session')}>
+            <button className="toggle-btn" data-tooltip="Start Recording Session" style={{ background: "rgba(34, 197, 94, 0.2)", border: "1px solid #22c55e", color: "#22c55e" }} onClick={() => socketRef.current?.emit('start_session')}>
               ▶ Start Session
             </button>
           ) : (
-            <button className="toggle-btn" style={{ background: "rgba(239, 68, 68, 0.2)", border: "1px solid #ef4444", color: "#ef4444" }} onClick={() => socketRef.current?.emit('end_session')}>
+            <button className="toggle-btn" data-tooltip="End & Export Session" style={{ background: "rgba(239, 68, 68, 0.2)", border: "1px solid #ef4444", color: "#ef4444" }} onClick={() => socketRef.current?.emit('end_session')}>
               ⏹ End Session
             </button>
           )}
-          <button className={`toggle-btn ${graphicsSettings.lyricsModeEnabled ? "active" : ""}`} onClick={() => {
+          <button className={`toggle-btn ${graphicsSettings.lyricsModeEnabled ? "active" : ""}`} data-tooltip="Toggle Lyrics Mode" onClick={() => {
             const newSettings = {...graphicsSettings, lyricsModeEnabled: !graphicsSettings.lyricsModeEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
@@ -1518,7 +1518,7 @@ export default function ContextEngineDashboard() {
           }}>
             🎵 Lyrics {graphicsSettings.lyricsModeEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${graphicsSettings.translationEnabled ? "active" : ""}`} onClick={() => {
+          <button className={`toggle-btn ${graphicsSettings.translationEnabled ? "active" : ""}`} data-tooltip="Toggle Translation" onClick={() => {
             const newSettings = {...graphicsSettings, translationEnabled: !graphicsSettings.translationEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
@@ -1526,7 +1526,7 @@ export default function ContextEngineDashboard() {
           }}>
             🌐 Translate {graphicsSettings.translationEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} onClick={() => {
+          <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} data-tooltip="Toggle AI Extraction" onClick={() => {
             const newSettings = {...graphicsSettings, aiExtractionEnabled: !graphicsSettings.aiExtractionEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
@@ -1534,19 +1534,19 @@ export default function ContextEngineDashboard() {
           }}>
             🤖 AI Extraction {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} onClick={toggleAudio}>
+          <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} data-tooltip="Toggle Microphone" onClick={toggleAudio}>
             {audioEnabled ? "🎙️" : "🔇"} Audio {audioEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${captionsEnabled ? "active" : ""}`} onClick={() => setCaptionsEnabled(!captionsEnabled)}>
+          <button className={`toggle-btn ${captionsEnabled ? "active" : ""}`} data-tooltip="Toggle Captions" onClick={() => setCaptionsEnabled(!captionsEnabled)}>
             💬 Captions {captionsEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${autoPush ? "active" : ""}`} onClick={() => setAutoPush(!autoPush)}>
+          <button className={`toggle-btn ${autoPush ? "active" : ""}`} data-tooltip="Auto-Push Cards" onClick={() => setAutoPush(!autoPush)}>
             🚀 Auto-Push {autoPush ? "ON" : "OFF"}
           </button>
-          <button className="toggle-btn" onClick={() => setSettingsOpen(true)}>
+          <button className="toggle-btn" data-tooltip="Open Settings" onClick={() => setSettingsOpen(true)}>
             ⚙️ Settings
           </button>
-          <button className="toggle-btn" style={{ color: "#ef4444" }} onClick={async () => {
+          <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444" }} onClick={async () => {
             await supabase.auth.signOut();
             window.location.reload();
           }}>

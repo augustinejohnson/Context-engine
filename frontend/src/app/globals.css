@@ -83,15 +83,16 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-light);
   color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 0.65rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  position: relative;
 }
 
 .sidebar-btn {
@@ -113,6 +114,23 @@ h1, h2, h3, h4, h5, h6 {
 
 .toggle-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+.toggle-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: #c4b5fd;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .toggle-btn.active {
@@ -442,6 +460,7 @@ h1, h2, h3, h4, h5, h6 {
 .live-text {
   transition: all 0.3s;
   color: #ffffff;
+  font-size: 22px;
   -webkit-text-stroke: 1px rgba(0,0,0,0.5);
   paint-order: stroke fill;
   text-shadow: 0 4px 12px rgba(0,0,0,0.6);
@@ -491,11 +510,11 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   color: white;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   backdrop-filter: blur(10px);
   transition: all 0.2s;
 }
@@ -713,4 +732,85 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
   margin-bottom: 20px;
   justify-content: flex-end;
+}
+
+/* Verse Popup */
+.verse-popup {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 10, 40, 0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  z-index: 50;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.verse-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #c4b5fd;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.verse-popup-header button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.verse-popup-header button:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+.verse-popup-list {
+  overflow-y: auto;
+  padding: 8px;
+  flex: 1;
+}
+.verse-popup-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #d4d4d8;
+}
+.verse-popup-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.verse-popup-item.selected {
+  background: rgba(167, 139, 250, 0.15);
+  color: white;
+}
+.verse-popup-num {
+  font-weight: bold;
+  color: #a78bfa;
+  min-width: 24px;
+  flex-shrink: 0;
+}
+.bible-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px;
+  position: relative;
 }
