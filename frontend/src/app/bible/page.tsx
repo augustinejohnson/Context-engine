@@ -6,6 +6,91 @@ import { useRouter } from "next/navigation";
 import { GraphicsSettings, StagingCard } from "../page";
 import { supabase } from "../../lib/supabaseClient";
 
+/* ── Book Metadata with abbreviations & color groups ── */
+const BOOK_META: { abbr: string; name: string; group: string }[] = [
+  // Old Testament
+  { abbr: "Gn", name: "Genesis", group: "pentateuch" },
+  { abbr: "Ex", name: "Exodus", group: "pentateuch" },
+  { abbr: "Lv", name: "Leviticus", group: "pentateuch" },
+  { abbr: "Nm", name: "Numbers", group: "pentateuch" },
+  { abbr: "Dt", name: "Deuteronomy", group: "pentateuch" },
+  { abbr: "Js", name: "Joshua", group: "history" },
+  { abbr: "Jg", name: "Judges", group: "history" },
+  { abbr: "Rt", name: "Ruth", group: "history" },
+  { abbr: "1Sm", name: "1 Samuel", group: "history" },
+  { abbr: "2Sm", name: "2 Samuel", group: "history" },
+  { abbr: "1Rs", name: "1 Kings", group: "history" },
+  { abbr: "2Rs", name: "2 Kings", group: "history" },
+  { abbr: "1Cr", name: "1 Chronicles", group: "history" },
+  { abbr: "2Cr", name: "2 Chronicles", group: "history" },
+  { abbr: "Ed", name: "Ezra", group: "history" },
+  { abbr: "Ne", name: "Nehemiah", group: "history" },
+  { abbr: "Et", name: "Esther", group: "history" },
+  { abbr: "Jb", name: "Job", group: "poetry" },
+  { abbr: "Ps", name: "Psalms", group: "poetry" },
+  { abbr: "Pv", name: "Proverbs", group: "poetry" },
+  { abbr: "Ec", name: "Ecclesiastes", group: "poetry" },
+  { abbr: "Ct", name: "Song of Solomon", group: "poetry" },
+  { abbr: "Is", name: "Isaiah", group: "major-prophet" },
+  { abbr: "Jr", name: "Jeremiah", group: "major-prophet" },
+  { abbr: "Lm", name: "Lamentations", group: "major-prophet" },
+  { abbr: "Ez", name: "Ezekiel", group: "major-prophet" },
+  { abbr: "Dn", name: "Daniel", group: "major-prophet" },
+  { abbr: "Os", name: "Hosea", group: "minor-prophet" },
+  { abbr: "Jl", name: "Joel", group: "minor-prophet" },
+  { abbr: "Am", name: "Amos", group: "minor-prophet" },
+  { abbr: "Ob", name: "Obadiah", group: "minor-prophet" },
+  { abbr: "Jn", name: "Jonah", group: "minor-prophet" },
+  { abbr: "Mc", name: "Micah", group: "minor-prophet" },
+  { abbr: "Na", name: "Nahum", group: "minor-prophet" },
+  { abbr: "Hc", name: "Habakkuk", group: "minor-prophet" },
+  { abbr: "Sf", name: "Zephaniah", group: "minor-prophet" },
+  { abbr: "Ag", name: "Haggai", group: "minor-prophet" },
+  { abbr: "Zc", name: "Zechariah", group: "minor-prophet" },
+  { abbr: "Ml", name: "Malachi", group: "minor-prophet" },
+  // New Testament
+  { abbr: "Mt", name: "Matthew", group: "gospel" },
+  { abbr: "Mk", name: "Mark", group: "gospel" },
+  { abbr: "Lk", name: "Luke", group: "gospel" },
+  { abbr: "Jo", name: "John", group: "gospel" },
+  { abbr: "At", name: "Acts", group: "acts" },
+  { abbr: "Rm", name: "Romans", group: "pauline" },
+  { abbr: "1Co", name: "1 Corinthians", group: "pauline" },
+  { abbr: "2Co", name: "2 Corinthians", group: "pauline" },
+  { abbr: "Gl", name: "Galatians", group: "pauline" },
+  { abbr: "Ef", name: "Ephesians", group: "pauline" },
+  { abbr: "Fp", name: "Philippians", group: "pauline" },
+  { abbr: "Cl", name: "Colossians", group: "pauline" },
+  { abbr: "1Ts", name: "1 Thessalonians", group: "pauline" },
+  { abbr: "2Ts", name: "2 Thessalonians", group: "pauline" },
+  { abbr: "1Tm", name: "1 Timothy", group: "pauline" },
+  { abbr: "2Tm", name: "2 Timothy", group: "pauline" },
+  { abbr: "Tt", name: "Titus", group: "pauline" },
+  { abbr: "Fm", name: "Philemon", group: "pauline" },
+  { abbr: "Hb", name: "Hebrews", group: "general" },
+  { abbr: "Tg", name: "James", group: "general" },
+  { abbr: "1Pe", name: "1 Peter", group: "general" },
+  { abbr: "2Pe", name: "2 Peter", group: "general" },
+  { abbr: "1Jo", name: "1 John", group: "general" },
+  { abbr: "2Jo", name: "2 John", group: "general" },
+  { abbr: "3Jo", name: "3 John", group: "general" },
+  { abbr: "Jd", name: "Jude", group: "general" },
+  { abbr: "Ap", name: "Revelation", group: "apocalyptic" },
+];
+
+const GROUP_COLORS: Record<string, string> = {
+  "pentateuch": "#4ade80",
+  "history": "#f472b6",
+  "poetry": "#60a5fa",
+  "major-prophet": "#c084fc",
+  "minor-prophet": "#a78bfa",
+  "gospel": "#fb923c",
+  "acts": "#f87171",
+  "pauline": "#facc15",
+  "general": "#2dd4bf",
+  "apocalyptic": "#e879f9",
+};
+
 export default function BibleBrowser() {
   const router = useRouter();
   const socketRef = useRef<Socket | null>(null);
@@ -14,24 +99,16 @@ export default function BibleBrowser() {
   const [graphicsSettings, setGraphicsSettings] = useState<GraphicsSettings | null>(null);
 
   const [bibleBooks, setBibleBooks] = useState<{book: string, chapters: number}[]>([]);
-  const [selectedBook, setSelectedBook] = useState<string>("Genesis");
-  const [selectedChapter, setSelectedChapter] = useState<number>(1);
+  const [selectedBook, setSelectedBook] = useState<string>("John");
+  const [selectedChapter, setSelectedChapter] = useState<number>(3);
   const [bibleVerses, setBibleVerses] = useState<any[]>([]);
   const [selectedVerseIndex, setSelectedVerseIndex] = useState<number | null>(null);
-  
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [loadingVerses, setLoadingVerses] = useState(false);
 
   const [version, setVersion] = useState("KJV");
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [session, setSession] = useState<any>(null);
-
-  // NEW STATE for verse popup
-  const [versePopupOpen, setVersePopupOpen] = useState(false);
-  const [versePopupChapter, setVersePopupChapter] = useState<number | null>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const verseListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,7 +125,6 @@ export default function BibleBrowser() {
   }, []);
 
   useEffect(() => {
-    // Hydrate settings
     const storedSettings = localStorage.getItem("contextEngineSettings");
     if (storedSettings) {
       setGraphicsSettings(JSON.parse(storedSettings));
@@ -73,22 +149,16 @@ export default function BibleBrowser() {
 
     socketRef.current.on("bible_books", (books) => {
       setBibleBooks(books);
-      if (books.length > 0) {
-        setSelectedBook(books[0].book);
-      }
     });
 
     socketRef.current.on("bible_chapter_data", (data) => {
       setBibleVerses(data.verses || []);
+      setLoadingVerses(false);
       if (data.verses && data.verses.length > 0) {
         setSelectedVerseIndex(0);
       } else {
         setSelectedVerseIndex(null);
       }
-    });
-
-    socketRef.current.on("bible_search_results", (results) => {
-      setSearchResults(results || []);
     });
 
     socketRef.current.on("connect_error", (err) => {
@@ -102,94 +172,64 @@ export default function BibleBrowser() {
 
   // Fetch chapter when book, chapter or version changes
   useEffect(() => {
-    if (selectedBook && selectedChapter && !isSearching) {
+    if (selectedBook && selectedChapter) {
+      setLoadingVerses(true);
+      setBibleVerses([]);
+      setSelectedVerseIndex(null);
       socketRef.current?.emit("get_bible_chapter", { book: selectedBook, chapter: selectedChapter, version });
     }
-  }, [selectedBook, selectedChapter, version, isSearching]);
+  }, [selectedBook, selectedChapter, version]);
 
-  // Search effect
+  // Scroll to selected verse in reading pane
   useEffect(() => {
-    if (isSearching && searchQuery.trim().length > 2) {
-      const debounce = setTimeout(() => {
-        socketRef.current?.emit("bible_search", { query: searchQuery });
-      }, 500);
-      return () => clearTimeout(debounce);
-    }
-  }, [searchQuery, isSearching]);
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setVersePopupOpen(false);
+    if (selectedVerseIndex !== null && verseListRef.current) {
+      const el = verseListRef.current.children[selectedVerseIndex] as HTMLElement;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+  }, [selectedVerseIndex]);
 
   // Keyboard Shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Don't trigger shortcuts if typing in search
-    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-      if (e.key === 'Escape') {
-        searchInputRef.current?.blur();
-      }
-      return;
-    }
-
-    const currentList = isSearching ? searchResults : bibleVerses;
+    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedVerseIndex(prev => 
-          prev === null ? 0 : Math.min(prev + 1, currentList.length - 1)
+        setSelectedVerseIndex(prev =>
+          prev === null ? 0 : Math.min(prev + 1, bibleVerses.length - 1)
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedVerseIndex(prev => 
+        setSelectedVerseIndex(prev =>
           prev === null ? 0 : Math.max(prev - 1, 0)
         );
         break;
       case 'ArrowRight':
-        if (!isSearching) {
-          e.preventDefault();
-          nextChapter();
-        }
+        e.preventDefault();
+        nextChapter();
         break;
       case 'ArrowLeft':
-        if (!isSearching) {
-          e.preventDefault();
-          prevChapter();
-        }
+        e.preventDefault();
+        prevChapter();
         break;
       case 'Enter':
         e.preventDefault();
-        if (selectedVerseIndex !== null && currentList[selectedVerseIndex]) {
-          pushLive(currentList[selectedVerseIndex]);
+        if (selectedVerseIndex !== null && bibleVerses[selectedVerseIndex]) {
+          pushLive(bibleVerses[selectedVerseIndex]);
         }
         break;
-      case ' ': // Space
+      case ' ':
         e.preventDefault();
-        if (selectedVerseIndex !== null && currentList[selectedVerseIndex]) {
-          stageVerse(currentList[selectedVerseIndex]);
+        if (selectedVerseIndex !== null && bibleVerses[selectedVerseIndex]) {
+          stageVerse(bibleVerses[selectedVerseIndex]);
         }
         break;
       case 'Escape':
         e.preventDefault();
-        if (versePopupOpen) {
-          setVersePopupOpen(false);
-        } else {
-          clearLive();
-        }
-        break;
-      case 'f':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          searchInputRef.current?.focus();
-        }
+        clearLive();
         break;
       case 'b':
         if (e.ctrlKey || e.metaKey) {
@@ -198,24 +238,30 @@ export default function BibleBrowser() {
         }
         break;
     }
-  }, [bibleVerses, searchResults, isSearching, selectedVerseIndex, versePopupOpen, router]);
+  }, [bibleVerses, selectedVerseIndex, router]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  const getBookChapters = (bookName: string) => {
+    const found = bibleBooks.find(b => b.book === bookName);
+    return found ? found.chapters : 0;
+  };
+
   const nextChapter = () => {
-    const bookData = bibleBooks.find(b => b.book === selectedBook);
-    if (!bookData) return;
-    if (selectedChapter < bookData.chapters) {
+    const chapters = getBookChapters(selectedBook);
+    if (selectedChapter < chapters) {
       setSelectedChapter(selectedChapter + 1);
     } else {
-      // Go to next book
-      const idx = bibleBooks.findIndex(b => b.book === selectedBook);
-      if (idx < bibleBooks.length - 1) {
-        setSelectedBook(bibleBooks[idx + 1].book);
-        setSelectedChapter(1);
+      const bookMeta = BOOK_META.find(b => b.name === selectedBook);
+      if (bookMeta) {
+        const idx = BOOK_META.indexOf(bookMeta);
+        if (idx < BOOK_META.length - 1) {
+          setSelectedBook(BOOK_META[idx + 1].name);
+          setSelectedChapter(1);
+        }
       }
     }
   };
@@ -224,38 +270,15 @@ export default function BibleBrowser() {
     if (selectedChapter > 1) {
       setSelectedChapter(selectedChapter - 1);
     } else {
-      // Go to previous book
-      const idx = bibleBooks.findIndex(b => b.book === selectedBook);
-      if (idx > 0) {
-        const prevBook = bibleBooks[idx - 1];
-        setSelectedBook(prevBook.book);
-        setSelectedChapter(prevBook.chapters);
+      const bookMeta = BOOK_META.find(b => b.name === selectedBook);
+      if (bookMeta) {
+        const idx = BOOK_META.indexOf(bookMeta);
+        if (idx > 0) {
+          const prevBookName = BOOK_META[idx - 1].name;
+          setSelectedBook(prevBookName);
+          setSelectedChapter(getBookChapters(prevBookName) || 1);
+        }
       }
-    }
-  };
-
-  const nextVerse = () => {
-    const list = isSearching ? searchResults : bibleVerses;
-    if (selectedVerseIndex === null) {
-      setSelectedVerseIndex(0);
-      return;
-    }
-    if (selectedVerseIndex < list.length - 1) {
-      setSelectedVerseIndex(selectedVerseIndex + 1);
-    } else if (!isSearching) {
-      nextChapter();
-    }
-  };
-
-  const prevVerse = () => {
-    if (selectedVerseIndex === null) {
-      setSelectedVerseIndex(0);
-      return;
-    }
-    if (selectedVerseIndex > 0) {
-      setSelectedVerseIndex(selectedVerseIndex - 1);
-    } else if (!isSearching) {
-      prevChapter();
     }
   };
 
@@ -271,14 +294,10 @@ export default function BibleBrowser() {
       content: content,
       preset: graphicsSettings?.scripturePosition || 'full-screen'
     };
-    
-    // Save to local storage staging queue so it's there when switching back
     const stored = localStorage.getItem("ce_stagingQueue");
     const queue = stored ? JSON.parse(stored) : [];
     queue.push(card);
     localStorage.setItem("ce_stagingQueue", JSON.stringify(queue));
-    
-    // Also emit to socket so other connected clients (like Dashboard) update in real-time
     socketRef.current?.emit('staging_card', card);
   };
 
@@ -297,249 +316,126 @@ export default function BibleBrowser() {
     socketRef.current?.emit("clear_live");
   };
 
-  const activeBookData = bibleBooks.find(b => b.book === selectedBook);
-  const displayedList = isSearching ? searchResults : bibleVerses;
+  const activeBookMeta = BOOK_META.find(b => b.name === selectedBook);
+  const chaptersCount = getBookChapters(selectedBook);
+  const versesCount = bibleVerses.length;
 
   return (
-    <div className="bible-page">
-      {/* Top Bar */}
-      <header className="bible-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button className="glass-btn primary" onClick={() => router.push('/')} title="Shortcut: Ctrl + B">
-            🎛️ Dashboard
-          </button>
-          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#c4b5fd' }}>📖 BIBLE BROWSER</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '4px 10px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: socketConnected ? '#22c55e' : '#ef4444', display: 'inline-block' }}></span>
-            <span style={{ color: socketConnected ? '#22c55e' : '#ef4444' }}>{socketConnected ? 'Connected' : 'Reconnecting...'}</span>
+    <div className="hb-page">
+      {/* ── LEFT: Reading Pane ── */}
+      <div className="hb-reading-pane">
+        {/* Header */}
+        <div className="hb-reading-header">
+          <div className="hb-reading-ref">{selectedBook} {selectedChapter}</div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <select className="hb-version-select" value={version} onChange={(e) => setVersion(e.target.value)}>
+              <option value="KJV">KJV</option>
+              <option value="NIV">NIV</option>
+              <option value="ESV">ESV</option>
+              <option value="NKJV">NKJV</option>
+              <option value="ASV">ASV</option>
+              <option value="WEB">WEB</option>
+              <option value="BBE">BBE</option>
+            </select>
+            <div className="hb-connection-dot" style={{ background: socketConnected ? '#22c55e' : '#ef4444' }} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <select 
-            className="input-field" 
-            style={{ width: '100px' }} 
-            value={version} 
-            onChange={(e) => setVersion(e.target.value)}
-          >
-            <option value="KJV">KJV</option>
-            <option value="NIV">NIV</option>
-            <option value="ESV">ESV</option>
-            <option value="ASV">ASV</option>
-            <option value="WEB">WEB</option>
-            <option value="BBE">BBE</option>
-          </select>
-
-          <input 
-            ref={searchInputRef}
-            type="text" 
-            className="bible-search-input" 
-            placeholder="Search verses (Ctrl+F)..." 
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setIsSearching(e.target.value.length > 0);
-            }}
-          />
-        </div>
-      </header>
-
-      {/* Layout - Now 2 Columns */}
-      <div className="bible-columns" style={{ display: 'flex' }}>
-        {/* Books Column */}
-        <div className="bible-books-col" style={{ width: '220px', flexShrink: 0 }}>
-          <div className="bible-testament-header">Books</div>
-          {bibleBooks.map((b, i) => (
-            <div 
-              key={b.book} 
-              className={`bible-book-item ${selectedBook === b.book ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedBook(b.book);
-                setSelectedChapter(1);
-                setIsSearching(false);
-                setSearchQuery("");
-                setVersePopupOpen(false);
-              }}
+        {/* Verse List */}
+        <div className="hb-verse-list" ref={verseListRef}>
+          {loadingVerses && (
+            <div className="hb-loading">Loading...</div>
+          )}
+          {!loadingVerses && bibleVerses.length === 0 && (
+            <div className="hb-loading">No verses found for this version.</div>
+          )}
+          {bibleVerses.map((v, i) => (
+            <div
+              key={`${v.chapter}-${v.verse}`}
+              className={`hb-verse-line ${selectedVerseIndex === i ? 'active' : ''}`}
+              onClick={() => setSelectedVerseIndex(i)}
             >
-              <span>{b.book}</span>
-              <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>{b.chapters}</span>
+              <span className="hb-verse-num">{v.verse}</span>
+              <span className="hb-verse-text">{v.text}</span>
             </div>
           ))}
         </div>
 
-        {/* Chapters & Verses Area */}
-        <div className="bible-chapters-col" style={{ flex: 1, position: 'relative', paddingRight: '20px' }}>
-          {!isSearching && activeBookData && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <div style={{ color: '#c4b5fd', fontWeight: 'bold', fontSize: '1.2rem' }}>{activeBookData.book}</div>
-                <div className="bible-nav-arrows">
-                  <button className="glass-btn" onClick={prevChapter} title="Shortcut: ←">◀ Prev Chap</button>
-                  <button className="glass-btn" onClick={nextChapter} title="Shortcut: →">Next Chap ▶</button>
-                </div>
-              </div>
-              
-              <div className="bible-chapter-grid" style={{ position: 'relative' }}>
-                {Array.from({ length: activeBookData.chapters }, (_, i) => i + 1).map(c => (
-                  <div 
-                    key={c}
-                    className={`bible-chapter-btn ${selectedChapter === c ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedChapter(c);
-                      setVersePopupChapter(c);
-                      setVersePopupOpen(true);
-                    }}
-                  >
-                    {c}
-                  </div>
-                ))}
-
-                {versePopupOpen && (
-                  <div ref={popupRef} className="verse-popup" style={{
-                    position: 'absolute',
-                    top: '60px',
-                    left: '0px',
-                    right: '0px',
-                    zIndex: 100,
-                    background: 'rgba(15, 23, 42, 0.95)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                    padding: '20px',
-                    maxHeight: '400px',
-                    overflowY: 'auto'
-                  }}>
-                    <div className="verse-popup-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#c4b5fd' }}>{selectedBook} {versePopupChapter}</span>
-                      <button onClick={() => setVersePopupOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                    </div>
-                    <div className="verse-popup-list">
-                      {bibleVerses.length === 0 ? (
-                        <div style={{ color: '#a1a1aa' }}>Loading verses...</div>
-                      ) : (
-                        bibleVerses.map((v, i) => (
-                          <div
-                            key={v.verse}
-                            className={`verse-popup-item ${selectedVerseIndex === i ? 'selected' : ''}`}
-                            style={{
-                              padding: '8px 12px',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              background: selectedVerseIndex === i ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
-                              display: 'flex',
-                              gap: '10px',
-                              marginBottom: '4px'
-                            }}
-                            onClick={() => {
-                              setSelectedVerseIndex(i);
-                            }}
-                          >
-                            <span className="verse-popup-num" style={{ color: '#8b5cf6', minWidth: '25px', fontWeight: 'bold' }}>{v.verse}</span>
-                            <span>{v.text}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Preview Area Below Chapters */}
-              <div style={{ marginTop: '30px', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', flex: 1 }}>
-                <h3 style={{ marginTop: 0, color: '#c4b5fd', marginBottom: '15px', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Selection</h3>
-                {selectedVerseIndex !== null && bibleVerses[selectedVerseIndex] ? (
-                  <div style={{ fontSize: '1.3rem', lineHeight: '1.6' }}>
-                    <strong style={{ color: '#8b5cf6', marginRight: '10px' }}>{bibleVerses[selectedVerseIndex].verse}</strong>
-                    {bibleVerses[selectedVerseIndex].text}
-                  </div>
-                ) : (
-                  <div style={{ color: '#a1a1aa' }}>Select a verse to preview</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {isSearching && (
-            <div style={{ padding: '10px', color: '#a1a1aa', height: '100%', overflowY: 'auto' }}>
-              <div style={{ marginBottom: '20px', fontSize: '1.1rem' }}>Showing search results for <span style={{color: '#fff'}}>"{searchQuery}"</span></div>
-              
-              {searchResults.length === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: '50px' }}>No results found.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {searchResults.map((v, i) => (
-                    <div 
-                      key={`${v.book}-${v.chapter}-${v.verse}`}
-                      className={`bible-verse-row ${selectedVerseIndex === i ? 'selected' : ''}`}
-                      onClick={() => setSelectedVerseIndex(i)}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        background: selectedVerseIndex === i ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.05)',
-                        display: 'flex',
-                        gap: '15px',
-                        alignItems: 'flex-start'
-                      }}
-                    >
-                      <div className="bible-verse-num" style={{ color: '#8b5cf6', minWidth: '100px', fontWeight: 'bold' }}>
-                        {selectedVerseIndex === i ? '► ' : ''}
-                        {v.book} {v.chapter}:{v.verse}
-                      </div>
-                      <div style={{ flex: 1, lineHeight: '1.5' }}>{v.text}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        {/* Action Bar */}
+        <div className="hb-action-bar">
+          <button className="hb-action-btn" onClick={() => router.push('/')} data-tooltip="Ctrl + B">🎛️ Dashboard</button>
+          <button className="hb-action-btn accent" onClick={() => selectedVerseIndex !== null && bibleVerses[selectedVerseIndex] && pushLive(bibleVerses[selectedVerseIndex])} disabled={selectedVerseIndex === null} data-tooltip="Enter">▶ Push Live</button>
+          <button className="hb-action-btn" onClick={() => selectedVerseIndex !== null && bibleVerses[selectedVerseIndex] && stageVerse(bibleVerses[selectedVerseIndex])} disabled={selectedVerseIndex === null} data-tooltip="Space">📋 Stage</button>
+          <button className="hb-action-btn danger" onClick={clearLive} data-tooltip="Escape">✕ Clear</button>
         </div>
       </div>
 
-      {/* Staging Strip */}
-      <div className="bible-staging-strip">
-        <div style={{ flex: 1, marginRight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {selectedVerseIndex !== null && displayedList[selectedVerseIndex] ? (
-            <span style={{ fontSize: '1.2rem' }}>
-              <span style={{ color: '#c4b5fd', fontWeight: 'bold', marginRight: '10px' }}>
-                {displayedList[selectedVerseIndex].book} {displayedList[selectedVerseIndex].chapter}:{displayedList[selectedVerseIndex].verse} ({displayedList[selectedVerseIndex].version || version})
-              </span>
-              "{displayedList[selectedVerseIndex].text}"
-            </span>
-          ) : (
-            <span style={{ color: '#a1a1aa' }}>Select a verse...</span>
-          )}
+      {/* ── RIGHT: Grids Panel ── */}
+      <div className="hb-grids-panel">
+        {/* Books Grid (Periodic Table Style) */}
+        <div className="hb-section">
+          <div className="hb-section-label">Books</div>
+          <div className="hb-books-grid">
+            {BOOK_META.map((bm) => {
+              const color = GROUP_COLORS[bm.group] || '#888';
+              const isActive = selectedBook === bm.name;
+              return (
+                <div
+                  key={bm.name}
+                  className={`hb-book-cell ${isActive ? 'active' : ''}`}
+                  style={{
+                    '--book-color': color,
+                    borderColor: isActive ? color : 'transparent',
+                    background: isActive ? `${color}22` : undefined,
+                  } as React.CSSProperties}
+                  onClick={() => {
+                    setSelectedBook(bm.name);
+                    setSelectedChapter(1);
+                  }}
+                  title={bm.name}
+                >
+                  <span className="hb-book-abbr">{bm.abbr}</span>
+                  <span className="hb-book-full">{bm.name}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="glass-btn" onClick={prevVerse} disabled={selectedVerseIndex === null} title="Shortcut: ↑">
-            ◀ Prev
-          </button>
-          <button className="glass-btn" onClick={nextVerse} disabled={selectedVerseIndex === null} title="Shortcut: ↓">
-            Next ▶
-          </button>
-          <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.2)', margin: '0 10px' }}></div>
-          <button className="glass-btn" style={{ borderColor: '#8b5cf6', color: '#c4b5fd' }} onClick={() => clearLive()} title="Shortcut: Esc">
-            Clear Live
-          </button>
-          <button 
-            className="glass-btn" 
-            style={{ background: 'rgba(255,255,255,0.1)' }}
-            onClick={() => selectedVerseIndex !== null && stageVerse(displayedList[selectedVerseIndex])}
-            disabled={selectedVerseIndex === null}
-            title="Shortcut: Space"
-          >
-            STAGE
-          </button>
-          <button 
-            className="glass-btn primary"
-            onClick={() => selectedVerseIndex !== null && pushLive(displayedList[selectedVerseIndex])}
-            disabled={selectedVerseIndex === null}
-            title="Shortcut: Enter"
-          >
-            ▶ PUSH LIVE
-          </button>
+
+        {/* Chapters Grid */}
+        <div className="hb-section">
+          <div className="hb-section-label">Chapters — {selectedBook}</div>
+          <div className="hb-num-grid">
+            {Array.from({ length: chaptersCount }, (_, i) => i + 1).map(c => (
+              <div
+                key={c}
+                className={`hb-num-cell ${selectedChapter === c ? 'active' : ''}`}
+                onClick={() => setSelectedChapter(c)}
+              >
+                {c}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Verses Grid */}
+        <div className="hb-section">
+          <div className="hb-section-label">Verses — {selectedBook} {selectedChapter}</div>
+          <div className="hb-num-grid verses">
+            {loadingVerses ? (
+              <div style={{ color: '#71717a', padding: '10px', gridColumn: '1 / -1' }}>Loading...</div>
+            ) : (
+              Array.from({ length: versesCount }, (_, i) => i + 1).map(v => (
+                <div
+                  key={v}
+                  className={`hb-num-cell verse ${selectedVerseIndex === v - 1 ? 'active' : ''}`}
+                  onClick={() => setSelectedVerseIndex(v - 1)}
+                >
+                  {v}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
