@@ -1092,7 +1092,17 @@ Text: "${text}"`;
         console.error('[Bible] bolls.life Remote API error:', e.message);
       }
     }
-    socket.emit('bible_chapter_data', { book, chapter, verses: results });
+    // Deduplicate verses by verse number in case DB has duplicates
+    const uniqueVerses = [];
+    const seen = new Set();
+    for (const v of results) {
+      if (!seen.has(v.verse)) {
+        seen.add(v.verse);
+        uniqueVerses.push(v);
+      }
+    }
+
+    socket.emit('bible_chapter_data', { book, chapter, verses: uniqueVerses });
   });
 
   socket.on('bible_search', async ({ query }) => {

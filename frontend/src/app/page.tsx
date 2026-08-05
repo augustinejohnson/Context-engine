@@ -186,10 +186,55 @@ export default function ContextEngineDashboard() {
   const [showSubscription, setShowSubscription] = useState(false);
   const [serverBuildId, setServerBuildId] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [screens, setScreens] = useState<any[]>([]);
+  const [selectedScreenId, setSelectedScreenId] = useState<string>('');
 
   const socketRef = useRef<Socket | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  const handleLaunchOutput = async () => {
+    let screenDetails = null;
+    if (typeof window !== "undefined" && "getScreenDetails" in window) {
+      try {
+        screenDetails = await (window as any).getScreenDetails();
+        setScreens(screenDetails.screens);
+      } catch (e) {
+        console.warn("Screen details permission denied.", e);
+      }
+    }
+    
+    let targetScreen = screenDetails?.screens?.[0];
+    if (screenDetails && selectedScreenId) {
+       targetScreen = screenDetails.screens.find((s:any) => s.id === selectedScreenId) || targetScreen;
+    } else if (screenDetails && screenDetails.screens.length > 1) {
+       targetScreen = screenDetails.screens.find((s:any) => s.isExtended) || screenDetails.screens[1];
+       if (targetScreen) setSelectedScreenId(targetScreen.id);
+    }
+
+    let features = 'width=1280,height=720,popup=yes,menubar=no,toolbar=no,location=no,status=no';
+    if (targetScreen) {
+       features += `,left=${targetScreen.availLeft},top=${targetScreen.availTop}`;
+    }
+
+    window.open('/output', 'LiveOutput', features);
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "getScreenDetails" in window) {
+      navigator.permissions.query({name: "window-management" as any}).then(p => {
+        if (p.state === "granted") {
+          (window as any).getScreenDetails().then((details: any) => {
+            setScreens(details.screens);
+            if (details.screens.length > 1) {
+              const extended = details.screens.find((s:any) => s.isExtended) || details.screens[1];
+              if (extended) setSelectedScreenId(extended.id);
+            }
+          });
+        }
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const fetchSub = async (userId: string, token: string) => {
@@ -393,10 +438,13 @@ export default function ContextEngineDashboard() {
       
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
-          fetch(`http://${data.holyrics.ip}:${data.holyrics.port}/api/v1/message`, {
+          // Send to Holyrics (use mode: 'no-cors' to avoid Chrome blocking local IP requests without preflights)
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          const payload = { text: data.content, show: true };
+          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(data.holyrics.token ? {'Authorization': `Bearer ${data.holyrics.token}`} : {}) },
-            body: JSON.stringify({ text: data.content })
+            mode: 'no-cors',
+            body: JSON.stringify(payload)
           }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
         }
         if (data.proPresenter.enabled) {
@@ -413,10 +461,11 @@ export default function ContextEngineDashboard() {
       } 
       else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          fetch(`http://${data.holyrics.ip}:${data.holyrics.port}/api/v1/message`, {
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(data.holyrics.token ? {'Authorization': `Bearer ${data.holyrics.token}`} : {}) },
-            body: JSON.stringify({ text: "" })
+            mode: 'no-cors',
+            body: JSON.stringify({ text: "", show: false })
           }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
         }
         if (data.proPresenter.enabled) {
@@ -1217,7 +1266,7 @@ export default function ContextEngineDashboard() {
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button 
-                  onClick={() => window.open('/output', 'LiveOutput', 'width=1280,height=720,popup=yes')}
+                  onClick={handleLaunchOutput}
                   style={{ background: "#7c3aed", color: "white", border: "none", padding: "0 15px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
                 >
                   Pop Out
@@ -1501,13 +1550,25 @@ export default function ContextEngineDashboard() {
           </div>
         </h1>
         <div className="toggles-group">
+          {screens.length > 0 && (
+            <select 
+              value={selectedScreenId} 
+              onChange={e => setSelectedScreenId(e.target.value)}
+              className="toggle-btn"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              {screens.map((s, i) => (
+                <option key={s.id} value={s.id} style={{background: '#111'}}>
+                  Screen {i + 1} {s.isExtended ? '(Ext)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
           <button 
             className="toggle-btn" 
-            data-tooltip="Launch on 2nd Screen" 
+            data-tooltip="Launch on Target Screen" 
             style={{ background: "rgba(139, 92, 246, 0.2)", border: "1px solid #8b5cf6", color: "#c4b5fd", fontWeight: "bold" }}
-            onClick={() => {
-              window.open('/output', 'LiveOutput', 'width=1280,height=720,popup=yes,menubar=no,toolbar=no,location=no,status=no');
-            }}
+            onClick={handleLaunchOutput}
           >
             🖥️ Launch Output
           </button>
