@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import AuthScreen from "../components/AuthScreen";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 const SubscriptionScreen = dynamic(() => import("../components/SubscriptionScreen"), { ssr: false });
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -62,6 +63,9 @@ export interface GraphicsSettings {
   spokenWordPosition: PresetType;
   lyricsPosition: PresetType;
   scripturePosition: PresetType;
+  bibleBgType: "solid" | "transparent" | "parchment" | "gradient";
+  bibleBgColor1: string;
+  bibleBgColor2: string;
 }
 
 /* ── Web Speech API types ──────────────────────────────── */
@@ -98,6 +102,7 @@ const FALLBACK_FONTS = [
 
 /* ── Component ─────────────────────────────────────────── */
 export default function ContextEngineDashboard() {
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [subStatus, setSubStatus] = useState<string>("loading");
@@ -167,6 +172,9 @@ export default function ContextEngineDashboard() {
     spokenWordPosition: "subtitle",
     lyricsPosition: "lower-third",
     scripturePosition: "full-screen",
+    bibleBgType: "parchment",
+    bibleBgColor1: "#f4ebd8",
+    bibleBgColor2: "#e6d5b8",
   });
   
   const [songsList, setSongsList] = useState<{id: number, title: string, artist: string}[]>([]);
@@ -1485,6 +1493,9 @@ export default function ContextEngineDashboard() {
           </div>
         </h1>
         <div className="toggles-group">
+          <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B">
+            📖 Bible
+          </button>
           {subStatus.startsWith('trial_') && (
             <button className="toggle-btn" style={{ background: "rgba(234, 179, 8, 0.2)", border: "1px solid #eab308", color: "#fef08a", fontWeight: "bold" }} onClick={() => setShowSubscription(true)}>
               ⭐ Subscribe
