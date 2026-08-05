@@ -1037,23 +1037,59 @@ Text: "${text}"`;
     }
 
     if (results.length === 0) {
+      // First try bible-api.com with a 5-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
         const query = `${book} ${chapter}`;
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
-          const data = await res.json();
-          if (data.verses && Array.isArray(data.verses)) {
-            results = data.verses.map((v: any) => ({
-              book: data.reference.split(' ')[0], // Approximate
-              chapter: v.chapter,
-              verse: v.verse,
-              text: v.text.trim(),
-              version: version
-            }));
+          const text = await res.text();
+          try {
+            const data = JSON.parse(text);
+            if (data.verses && Array.isArray(data.verses)) {
+              results = data.verses.map((v: any) => ({
+                book: data.reference.split(' ')[0], // Approximate
+                chapter: v.chapter,
+                verse: v.verse,
+                text: v.text.trim(),
+                version: version
+              }));
+            }
+          } catch (e) {
+            console.error('[Bible] bible-api.com returned non-JSON:', text.substring(0, 50));
           }
         }
-      } catch (e) {
-        console.error('[Bible] Remote API error:', e);
+      } catch (e: any) {
+        clearTimeout(timeoutId);
+        console.error('[Bible] bible-api.com Remote API error:', e.message);
+      }
+    }
+
+    if (results.length === 0) {
+      // Fallback to bolls.life API (supports NIV, ESV, etc)
+      try {
+        const bookIdx = BIBLE_BOOKS.findIndex(b => b.book.toLowerCase() === book.toLowerCase());
+        if (bookIdx >= 0) {
+          const bookId = bookIdx + 1;
+          const res = await fetch(`https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              results = data.map((v: any) => ({
+                book: book,
+                chapter: chapter,
+                verse: v.verse,
+                // Strip HTML tags like <br/> that Bolls includes
+                text: v.text.replace(/<[^>]+>/g, '').trim(),
+                version: version
+              }));
+            }
+          }
+        }
+      } catch (e: any) {
+        console.error('[Bible] bolls.life Remote API error:', e.message);
       }
     }
     socket.emit('bible_chapter_data', { book, chapter, verses: results });
