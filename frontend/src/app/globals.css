@@ -81,17 +81,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .toggle-btn {
   background: rgba(255, 255, 255, 0.05);
-  border: none;
+  border: 1px solid var(--border-light);
   color: var(--text-primary);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-family: var(--font-sans);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 500;
-  font-size: 0.7rem;
   cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .sidebar-btn {
@@ -105,7 +105,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -488,12 +488,15 @@ h1, h2, h3, h4, h5, h6 {
 .glass-input:focus { border-color: rgba(255,255,255,0.4); }
 
 .glass-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
   color: white;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  backdrop-filter: blur(10px);
   transition: all 0.2s;
 }
 .glass-btn:hover { background: rgba(255, 255, 255, 0.15); }
