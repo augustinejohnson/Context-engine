@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { GraphicsSettings, StagingCard } from "../page";
+import { supabase } from "../lib/supabaseClient";
 
 export default function BibleBrowser() {
   const router = useRouter();
@@ -25,25 +26,37 @@ export default function BibleBrowser() {
   const [version, setVersion] = useState("KJV");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     // Hydrate settings
     const storedSettings = localStorage.getItem("contextEngineSettings");
     if (storedSettings) {
       setGraphicsSettings(JSON.parse(storedSettings));
     }
+  }, []);
 
-    const token = localStorage.getItem("sb-aqbchtdzoypufwzrmqah-auth-token");
-    let authToken = null;
-    if (token) {
-      const parsed = JSON.parse(token);
-      authToken = parsed.access_token;
-    }
+  useEffect(() => {
+    if (!session?.access_token) return;
 
-    const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
     
     socketRef.current = io(backendUrl, {
-      auth: { token: authToken }
+      auth: { token: session.access_token }
     });
 
     socketRef.current.on("connect", () => {
@@ -73,10 +86,14 @@ export default function BibleBrowser() {
       setSearchResults(results || []);
     });
 
+    socketRef.current.on("connect_error", (err) => {
+      console.error("Bible Socket connection error:", err);
+    });
+
     return () => {
       socketRef.current?.disconnect();
     };
-  }, []);
+  }, [session?.access_token]);
 
   // Fetch chapter when book, chapter or version changes
   useEffect(() => {
