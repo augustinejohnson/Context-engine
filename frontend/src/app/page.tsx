@@ -1208,13 +1208,21 @@ export default function ContextEngineDashboard() {
               <div style={{ fontSize: "0.85rem", color: "#ccc", lineHeight: "1.4", marginBottom: "8px" }}>
                 These do not require API IP settings. Instead, add a <strong>Browser Source</strong> in your software and paste this local overlay URL:
               </div>
-              <input 
-                type="text" 
-                readOnly 
-                value="http://localhost:3000/output" 
-                style={{ background: "rgba(0,0,0,0.5)", color: "#4ade80", cursor: "text", width: "100%", padding: "10px", border: "1px dashed rgba(255,255,255,0.2)", borderRadius: "4px" }}
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value="http://localhost:3000/output" 
+                  style={{ background: "rgba(0,0,0,0.5)", color: "#4ade80", cursor: "text", flex: 1, padding: "10px", border: "1px dashed rgba(255,255,255,0.2)", borderRadius: "4px" }}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <button 
+                  onClick={() => window.open('/output', 'LiveOutput', 'width=1280,height=720,popup=yes')}
+                  style={{ background: "#7c3aed", color: "white", border: "none", padding: "0 15px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+                >
+                  Pop Out
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1493,6 +1501,16 @@ export default function ContextEngineDashboard() {
           </div>
         </h1>
         <div className="toggles-group">
+          <button 
+            className="toggle-btn" 
+            data-tooltip="Launch on 2nd Screen" 
+            style={{ background: "rgba(139, 92, 246, 0.2)", border: "1px solid #8b5cf6", color: "#c4b5fd", fontWeight: "bold" }}
+            onClick={() => {
+              window.open('/output', 'LiveOutput', 'width=1280,height=720,popup=yes,menubar=no,toolbar=no,location=no,status=no');
+            }}
+          >
+            🖥️ Launch Output
+          </button>
           <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B" data-tooltip="Ctrl + B">
             📖 Bible
           </button>
