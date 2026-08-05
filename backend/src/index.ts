@@ -10,6 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { detectScripture, detectKeywords } from './nlp-engine';
 import { createClient } from '@supabase/supabase-js';
 import { fetchLyricsFromWeb } from './lyrics-scraper';
+import { parseOffice } from 'officeparser';
 
 dotenv.config();
 
@@ -439,7 +440,7 @@ io.on('connection', (socket) => {
       if (lyrics) {
         combinedLyrics = lyrics.map((l: any) => `[${l.section}]\n${l.text}`).join('\n\n');
       }
-      socket.emit('song_lyrics_data', { title: song.title, artist: song.artist, lyrics: combinedLyrics });
+      socket.emit('song_lyrics_result', { title: song.title, artist: song.artist, lyrics: combinedLyrics });
     } catch (e: any) {
       console.error('[Songs] Error getting lyrics:', e);
       socket.emit('fetch_error', `Failed to get lyrics for "${title}"`);
@@ -465,6 +466,156 @@ io.on('connection', (socket) => {
   socket.on('get_songs', async () => {
     const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
     socket.emit('songs_list', songs || []);
+  });
+
+  // ---- File Import: CSV/TXT ----
+  socket.on('import_csv', async (csvText: string) => {
+    try {
+      console.log('[Import] Processing CSV/TXT file...');
+      const lines = csvText.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length === 0) throw new Error('File is empty');
+
+      // Try to detect if it's a Holyrics CSV (title, artist, lyrics columns)
+      // or a plain text lyrics file
+      let title = 'Imported Song';
+      let artist = 'Unknown';
+      let lyricsText = '';
+
+      // Check if first line looks like a CSV header
+      const firstLine = lines[0].toLowerCase();
+      if (firstLine.includes('title') && firstLine.includes('lyric')) {
+        // Holyrics CSV format - skip header, parse rows
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(',');
+          if (parts.length >= 2) {
+            title = parts[0].replace(/"/g, '').trim() || title;
+            artist = parts.length >= 3 ? parts[1].replace(/"/g, '').trim() : artist;
+            lyricsText = parts.slice(parts.length >= 3 ? 2 : 1).join(',').replace(/"/g, '').trim();
+          }
+        }
+      } else {
+        // Plain text - treat entire content as lyrics for one song
+        lyricsText = lines.join('\n');
+      }
+
+      // Save to DB
+      const { data: songRecord, error: songErr } = await supabase.from('songs')
+        .insert({ title, artist, tenant_id: tenantId })
+        .select().single();
+      if (songErr || !songRecord) throw new Error('Failed to insert song: ' + songErr?.message);
+
+      // Parse sections
+      const sectionLines = lyricsText.split('\n');
+      let currentSection = 'Verse 1';
+      let currentText = '';
+      const sections: { section: string; text: string }[] = [];
+      for (let line of sectionLines) {
+        line = line.trim();
+        if (!line) continue;
+        if (line.startsWith('[') && line.endsWith(']')) {
+          if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
+          currentSection = line.replace('[', '').replace(']', '');
+          currentText = '';
+        } else {
+          currentText += line + '\n';
+        }
+      }
+      if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
+      if (sections.length === 0) sections.push({ section: 'Full Song', text: lyricsText.trim() });
+
+      for (const section of sections) {
+        await supabase.from('song_lyrics').insert({
+          song_id: songRecord.id, title, artist, section: section.section, text: section.text, tenant_id: tenantId
+        });
+      }
+
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+      socket.emit('fetch_success', `CSV imported: "${title}" with ${sections.length} sections.`);
+    } catch (e: any) {
+      console.error('[Import] CSV error:', e);
+      socket.emit('fetch_error', `Failed to import CSV: ${e.message}`);
+    }
+  });
+
+  // ---- File Import: DOCX ----
+  socket.on('import_docx', async (payload: { title: string; artist: string; buffer: ArrayBuffer }) => {
+    try {
+      console.log(`[Import] Processing DOCX: "${payload.title}"`);
+      const buf = Buffer.from(payload.buffer);
+      const text = (await parseOffice(buf)).toText();
+
+      const { data: songRecord, error: songErr } = await supabase.from('songs')
+        .insert({ title: payload.title, artist: payload.artist || 'Unknown', tenant_id: tenantId })
+        .select().single();
+      if (songErr || !songRecord) throw new Error('Failed to insert song: ' + songErr?.message);
+
+      const lines = text.split('\n');
+      let currentSection = 'Verse 1';
+      let currentText = '';
+      const sections: { section: string; text: string }[] = [];
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        if (line.startsWith('[') && line.endsWith(']')) {
+          if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
+          currentSection = line.replace('[', '').replace(']', '');
+          currentText = '';
+        } else {
+          currentText += line + '\n';
+        }
+      }
+      if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
+      if (sections.length === 0) sections.push({ section: 'Full Song', text: text.trim() });
+
+      for (const section of sections) {
+        await supabase.from('song_lyrics').insert({
+          song_id: songRecord.id, title: payload.title, artist: payload.artist || 'Unknown', section: section.section, text: section.text, tenant_id: tenantId
+        });
+      }
+
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+      socket.emit('fetch_success', `DOCX imported: "${payload.title}" with ${sections.length} sections.`);
+    } catch (e: any) {
+      console.error('[Import] DOCX error:', e);
+      socket.emit('fetch_error', `Failed to import DOCX: ${e.message}`);
+    }
+  });
+
+  // ---- File Import: PPTX ----
+  socket.on('import_pptx', async (payload: { title: string; artist: string; buffer: ArrayBuffer }) => {
+    try {
+      console.log(`[Import] Processing PPTX: "${payload.title}"`);
+      const buf = Buffer.from(payload.buffer);
+      const text = (await parseOffice(buf)).toText();
+
+      const { data: songRecord, error: songErr } = await supabase.from('songs')
+        .insert({ title: payload.title, artist: payload.artist || 'Unknown', tenant_id: tenantId })
+        .select().single();
+      if (songErr || !songRecord) throw new Error('Failed to insert song: ' + songErr?.message);
+
+      // For PPTX, each slide is typically separated by newlines
+      const slideTexts = text.split('\n\n').filter((s: string) => s.trim());
+      const sections: { section: string; text: string }[] = [];
+      slideTexts.forEach((slideText: string, i: number) => {
+        sections.push({ section: `Slide ${i + 1}`, text: slideText.trim() });
+      });
+      if (sections.length === 0) sections.push({ section: 'Full Song', text: text.trim() });
+
+      for (const section of sections) {
+        await supabase.from('song_lyrics').insert({
+          song_id: songRecord.id, title: payload.title, artist: payload.artist || 'Unknown', section: section.section, text: section.text, tenant_id: tenantId
+        });
+      }
+
+      const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
+      io.to(tenantId).emit('songs_list', songs || []);
+      socket.emit('fetch_success', `PPTX imported: "${payload.title}" with ${sections.length} slides.`);
+    } catch (e: any) {
+      console.error('[Import] PPTX error:', e);
+      socket.emit('fetch_error', `Failed to import PPTX: ${e.message}`);
+    }
   });
 
   // ---- Real-time transcript from browser Web Speech API ----
