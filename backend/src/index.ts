@@ -799,10 +799,10 @@ io.on('connection', (socket) => {
         
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
-1. SCRIPTURE (Highest Priority): If the user is quoting a scripture text directly (e.g. "In the beginning was the Word" or "Who comforted us in all tribulations") OR referencing one (e.g. "1 Timothy 3:4"), identify the correct biblical reference and extract it as type="scripture". Do NOT extract the quoted words, ONLY extract the formal Book Chapter:Verse reference (e.g. "John 1:1" or "2 Corinthians 1:4"). Never classify a Bible verse as general knowledge.
-2. KNOWLEDGE: If the user states an important fact, deep quote, or general knowledge point, extract a concise summary of it as type="knowledge". This applies to ALL fields of study.
+1. SCRIPTURE (Highest Priority): If the user is quoting a recognizable Bible verse (e.g. "Love not the world", "In the beginning was the Word") OR referencing one (e.g. "1 John 2:15"), identify the correct biblical reference and extract it as type="scripture". Do NOT extract it as "knowledge". Also, provide an array of 2-3 related cross-reference verse strings (e.g. ["Romans 12:2", "James 4:4"]) in a "crossReferences" array. Never classify a Bible verse as general knowledge.
+2. KNOWLEDGE: If the user states an important fact, deep quote, or general knowledge point (that is NOT from the Bible), extract a concise summary of it as type="knowledge". This applies to ALL fields of study except the Bible.
 3. SONG: If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
-Return a JSON object with a single key 'data' containing an array of objects with 'type' ('scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title). If nothing important, return {"data": []}.
+Return a JSON object with a single key 'data' containing an array of objects with 'type' ('scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title), and 'crossReferences' (only if type is scripture). If nothing important, return {"data": []}.
 Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', ONLY extract scriptures. if 'knowledge', ONLY extract knowledge. if 'all', extract everything).
 
 Text: "${text}"`;
@@ -860,6 +860,9 @@ Text: "${text}"`;
               }
 
               if (cardContent) {
+                if (item.crossReferences && Array.isArray(item.crossReferences) && item.crossReferences.length > 0) {
+                  cardContent += `\n\n[Cross Refs: ${item.crossReferences.join(', ')}]`;
+                }
                 const card = {
                   id: `card-${cardIdCounter++}`,
                   type: 'scripture' as const,
