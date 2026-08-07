@@ -8,7 +8,7 @@ export default function OutputPage() {
   const [liveContent, setLiveContent] = useState<{ content: string; preset: string; type?: string } | null>(null);
   
   // Settings sync
-  const [bgType, setBgType] = useState("transparent");
+  const [bgType, setBgType] = useState("solid");
   const [bgColor1, setBgColor1] = useState("#000000");
   const [bgColor2, setBgColor2] = useState("#1a1a2e");
 

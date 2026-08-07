@@ -1559,7 +1559,7 @@ export default function ContextEngineDashboard() {
             >
               {screens.map((s, i) => (
                 <option key={s.id} value={s.id} style={{background: '#111'}}>
-                  Screen {i + 1} {s.isExtended ? '(Ext)' : ''}
+                  {s.label || `Screen ${i + 1}`} {s.isExtended ? '(Ext)' : ''}
                 </option>
               ))}
             </select>
