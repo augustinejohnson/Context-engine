@@ -145,6 +145,11 @@ export default function BibleBrowser() {
     socketRef.current.on("connect", () => {
       setSocketConnected(true);
       socketRef.current?.emit("get_bible_books");
+      
+      const storedSettings = localStorage.getItem("contextEngineSettings");
+      if (storedSettings) {
+        socketRef.current?.emit("update_settings", JSON.parse(storedSettings));
+      }
     });
 
     socketRef.current.on("disconnect", () => setSocketConnected(false));
