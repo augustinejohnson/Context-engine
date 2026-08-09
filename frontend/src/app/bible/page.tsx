@@ -187,9 +187,9 @@ export default function BibleBrowser() {
             body: JSON.stringify(stagePayload)
           }).catch(e => console.error('[Bridge] Holyrics Stage Monitor Error:', e.message));
 
-          // 2. Send to Main Screen (Quick Presentation Text)
-          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowText`;
-          const mainPayload = { text: data.content, quick_presentation: true };
+          // 2. Send to Main Screen (Create Text)
+          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
+          const mainPayload = { text: data.content, show: true, display_ahead: true };
           fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
