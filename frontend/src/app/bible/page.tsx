@@ -178,12 +178,22 @@ export default function BibleBrowser() {
       
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
-          const payload = { text: data.content, show: true, display_ahead: true };
-          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+          // 1. Send to Stage Monitor (Communication Panel)
+          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          const stagePayload = { text: data.content, show: true, display_ahead: true };
+          fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(stagePayload)
+          }).catch(e => console.error('[Bridge] Holyrics Stage Monitor Error:', e.message));
+
+          // 2. Send to Main Screen (Quick Presentation Text)
+          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          const mainPayload = { text: data.content, quick_presentation: true };
+          fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mainPayload)
           }).then(async (res) => {
             if (!res.ok) {
               const text = await res.text();
@@ -197,12 +207,19 @@ export default function BibleBrowser() {
         }
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
-          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: "", show: false })
-          }).catch(e => console.error('[Bridge] Holyrics Network Error:', e.message));
+          }).catch(e => console.error('[Bridge] Holyrics Stage Error:', e.message));
+
+          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: "", quick_presentation: true })
+          }).catch(e => console.error('[Bridge] Holyrics Main Error:', e.message));
         }
       }
     });
