@@ -432,6 +432,39 @@ export default function ContextEngineDashboard() {
       console.error("Socket connection error:", err);
     });
 
+    const BIBLE_BOOKS = [
+      "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+      "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
+      "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
+      "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+      "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations",
+      "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+      "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
+      "Zephaniah", "Haggai", "Zechariah", "Malachi",
+      "Matthew", "Mark", "Luke", "John", "Acts",
+      "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+      "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy",
+      "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
+      "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
+      "Jude", "Revelation"
+    ];
+
+    function getHolyricsVerseId(reference: string) {
+      const match = reference.match(/^(\d?\s*[a-zA-Z\s]+)\s+(\d+):(\d+)/);
+      if (!match) return null;
+      const bookName = match[1].trim();
+      const chapter = parseInt(match[2], 10);
+      const verse = parseInt(match[3], 10);
+      
+      const bookIndex = BIBLE_BOOKS.findIndex(b => b.toLowerCase() === bookName.toLowerCase());
+      if (bookIndex === -1) return null;
+      
+      const bb = String(bookIndex + 1).padStart(2, '0');
+      const ccc = String(chapter).padStart(3, '0');
+      const vvv = String(verse).padStart(3, '0');
+      return `${bb}${ccc}${vvv}`;
+    }
+
     // Cloud-to-Local Bridge: Execute local network requests from the browser
     socketRef.current.on("trigger_local_api", (data: any) => {
       console.log("[Bridge] Triggering Local API:", data.action);
@@ -449,10 +482,11 @@ export default function ContextEngineDashboard() {
 
           // 2. Send to Main Screen
           if (data.type === 'scripture' && data.scriptureReference) {
-            // Use ShowVerse for Scriptures
-            const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowVerse`;
-            const mainPayload = { input: { references: data.scriptureReference }, quick_presentation: true };
-            fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            const verseId = getHolyricsVerseId(data.scriptureReference);
+            if (verseId) {
+              const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowVerse`;
+              const mainPayload = { id: verseId };
+              fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(mainPayload)
@@ -462,6 +496,9 @@ export default function ContextEngineDashboard() {
                 console.error('[Bridge] Holyrics ShowVerse HTTP Error:', res.status, text);
               }
             }).catch(e => console.error('[Bridge] Holyrics ShowVerse Error:', e.message));
+            } else {
+              console.warn('[Bridge] Failed to map scripture reference to Holyrics ID:', data.scriptureReference);
+            }
           } else {
             // Use CreateText for Lyrics & Knowledge
             const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
