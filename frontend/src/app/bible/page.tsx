@@ -167,6 +167,41 @@ export default function BibleBrowser() {
       console.error("Bible Socket connection error:", err);
     });
 
+    // Local API Trigger Listener (for Holyrics, ProPresenter, vMix)
+    socketRef.current.on("trigger_local_api", (data: any) => {
+      console.log("[Bridge] Triggering Local API:", data.action);
+      
+      if (data.action === 'push_live') {
+        if (data.holyrics.enabled) {
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          const payload = { text: data.content, show: true, display_ahead: true };
+          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              console.error('[Bridge] Holyrics HTTP Error:', res.status, text);
+              alert(`Holyrics Error: ${res.status} - ${text}`);
+            }
+          }).catch(e => {
+            console.error('[Bridge] Holyrics Network Error:', e.message);
+            alert(`Holyrics Network Error: ${e.message}`);
+          });
+        }
+      } else if (data.action === 'clear_live') {
+        if (data.holyrics.enabled) {
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: "", show: false })
+          }).catch(e => console.error('[Bridge] Holyrics Network Error:', e.message));
+        }
+      }
+    });
+
     return () => {
       socketRef.current?.disconnect();
     };
