@@ -799,11 +799,12 @@ io.on('connection', (socket) => {
         
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
-1. SCRIPTURE (Highest Priority): If the user is quoting a recognizable Bible verse (e.g. "Love not the world", "In the beginning was the Word") OR referencing one (e.g. "1 John 2:15"), identify the correct biblical reference and extract it as type="scripture". Do NOT extract it as "knowledge". Also, provide an array of 2-3 related cross-reference verse strings (e.g. ["Romans 12:2", "James 4:4"]) in a "crossReferences" array. Never classify a Bible verse as general knowledge.
-2. KNOWLEDGE: If the user states an important fact, deep quote, or general knowledge point (that is NOT from the Bible), extract a concise summary of it as type="knowledge". This applies to ALL fields of study except the Bible.
-3. SONG: If they mention they are going to sing a song, or they start singing/reciting lyrics to a known worship song, extract the title of the song as type="song" (e.g. "Way Maker").
-Return a JSON object with a single key 'data' containing an array of objects with 'type' ('scripture', 'knowledge', or 'song') and 'content' (the extracted text/reference or song title), and 'crossReferences' (only if type is scripture). If nothing important, return {"data": []}.
-Target mode: ${settings.aiExtractionTarget || 'all'} (if 'scriptures', ONLY extract scriptures. if 'knowledge', ONLY extract knowledge. if 'all', extract everything).
+1. SCRIPTURE (Highest Priority): If the text contains ANY Bible verse, Bible quote, or Bible reference (e.g. "Genesis 1:3", "Let there be light"), you MUST extract it as type="scripture". Provide the standard reference string (e.g. "Genesis 1:3") as the 'content'. Also provide 2-3 related cross-reference verse strings in a 'crossReferences' array.
+CRITICAL RULE: NEVER classify anything biblical as type="knowledge". If it is from the Bible, it MUST be type="scripture".
+2. KNOWLEDGE: If the user states a general knowledge fact, quote, or definition (that is NOT biblical), extract a concise summary as type="knowledge".
+3. SONG: If they sing or recite a worship song, extract the title as type="song" (e.g. "Way Maker").
+Return a JSON object with a single key 'data' containing an array of these objects.
+Target mode: ${settings.aiExtractionTarget || 'all'}.
 
 Text: "${text}"`;
 
@@ -859,18 +860,22 @@ Text: "${text}"`;
                  }
               }
 
-              if (cardContent) {
-                if (item.crossReferences && Array.isArray(item.crossReferences) && item.crossReferences.length > 0) {
-                  cardContent += `\n\n[Cross Refs: ${item.crossReferences.join(', ')}]`;
-                }
-                const card = {
-                  id: `card-${cardIdCounter++}`,
-                  type: 'scripture' as const,
-                  content: cardContent,
-                  preset: settings.scripturePosition || 'full-screen',
-                };
-                io.to(tenantId).emit('staging_card', card);
+              // If fetch fails, at least show the reference
+              if (!cardContent) {
+                cardContent = item.content;
               }
+
+              if (item.crossReferences && Array.isArray(item.crossReferences) && item.crossReferences.length > 0) {
+                cardContent += `\n\n[Cross Refs: ${item.crossReferences.join(', ')}]`;
+              }
+              const card = {
+                id: `card-${cardIdCounter++}`,
+                type: 'scripture' as const,
+                content: cardContent,
+                preset: settings.scripturePosition || 'full-screen',
+                scriptureReference: match ? `${match[1].trim()} ${match[2]}:${match[3]}` : item.content
+              };
+              io.to(tenantId).emit('staging_card', card);
             } else if (item.type === 'knowledge') {
               const card = {
                 id: `card-${cardIdCounter++}`,
@@ -980,7 +985,9 @@ Text: "${text}"`;
     // Emit local API triggers back to the specific client's browser!
     socket.emit('trigger_local_api', {
       action: 'push_live',
+      type: cardData.type,
       content: cardData.content,
+      scriptureReference: cardData.scriptureReference,
       holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
       proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
       vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput }

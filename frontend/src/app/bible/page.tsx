@@ -187,23 +187,31 @@ export default function BibleBrowser() {
             body: JSON.stringify(stagePayload)
           }).catch(e => console.error('[Bridge] Holyrics Stage Monitor Error:', e.message));
 
-          // 2. Send to Main Screen (Create Text)
-          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
-          const mainPayload = { text: data.content, show: true, display_ahead: true };
-          fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(mainPayload)
-          }).then(async (res) => {
-            if (!res.ok) {
-              const text = await res.text();
-              console.error('[Bridge] Holyrics HTTP Error:', res.status, text);
-              alert(`Holyrics Error: ${res.status} - ${text}`);
-            }
-          }).catch(e => {
-            console.error('[Bridge] Holyrics Network Error:', e.message);
-            alert(`Holyrics Network Error: ${e.message}`);
-          });
+          // 2. Send to Main Screen
+          if (data.type === 'scripture' && data.scriptureReference) {
+            // Use ShowVerse for Scriptures
+            const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowVerse`;
+            const mainPayload = { input: { references: data.scriptureReference }, quick_presentation: true };
+            fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(mainPayload)
+            }).catch(e => console.error('[Bridge] Holyrics ShowVerse Error:', e.message));
+          } else {
+            // Use CreateText for Lyrics & Knowledge
+            const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
+            const mainPayload = { text: data.content, show: true, display_ahead: true };
+            fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(mainPayload)
+            }).then(async (res) => {
+              if (!res.ok) {
+                const text = await res.text();
+                console.error('[Bridge] Holyrics HTTP Error:', res.status, text);
+              }
+            }).catch(e => console.error('[Bridge] Holyrics Network Error:', e.message));
+          }
         }
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
