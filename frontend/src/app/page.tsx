@@ -439,13 +439,22 @@ export default function ContextEngineDashboard() {
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
           // Send to Holyrics (using SetTextCP endpoint for dynamic text)
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
           const payload = { text: data.content, show: true, display_ahead: true };
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-          }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
+          }).then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              console.error('[Bridge] Holyrics HTTP Error:', res.status, text);
+              alert(`Holyrics Error: ${res.status} - ${text}`);
+            }
+          }).catch(e => {
+            console.error('[Bridge] Holyrics Network Error:', e.message);
+            alert(`Holyrics Network Error: ${e.message}`);
+          });
         }
         if (data.proPresenter.enabled) {
           fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/trigger`, {
@@ -461,12 +470,12 @@ export default function ContextEngineDashboard() {
       } 
       else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: "", show: false })
-          }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
+          }).catch(e => console.error('[Bridge] Holyrics Network Error:', e.message));
         }
         if (data.proPresenter.enabled) {
           fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/clear`, {
