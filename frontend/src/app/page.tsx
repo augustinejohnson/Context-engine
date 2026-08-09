@@ -438,9 +438,9 @@ export default function ContextEngineDashboard() {
       
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
-          // Send to Holyrics (use mode: 'no-cors' to avoid Chrome blocking local IP requests without preflights)
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
-          const payload = { text: data.content, show: true };
+          // Send to Holyrics (using SetTextCP endpoint for dynamic text)
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
+          const payload = { text: data.content, show: true, display_ahead: true };
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -461,7 +461,7 @@ export default function ContextEngineDashboard() {
       } 
       else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
