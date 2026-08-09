@@ -1215,9 +1215,12 @@ export default function ContextEngineDashboard() {
                 <span title={`API Status: ${apiStatuses.holyrics}`} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: apiStatuses.holyrics === 'online' ? '#22c55e' : '#ef4444', display: 'inline-block', marginLeft: 'auto' }}></span>
               </label>
               {graphicsSettings.holyricsEnabled && (
-                <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                  <input type="text" placeholder="IP Address" value={graphicsSettings.holyricsIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, holyricsIp: e.target.value })} />
-                  <input type="text" placeholder="Port" style={{ width: "70px" }} value={graphicsSettings.holyricsPort} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, holyricsPort: e.target.value })} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input type="text" placeholder="IP Address" value={graphicsSettings.holyricsIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, holyricsIp: e.target.value })} style={{ flex: 1 }} />
+                    <input type="text" placeholder="Port" style={{ width: "70px" }} value={graphicsSettings.holyricsPort} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, holyricsPort: e.target.value })} />
+                  </div>
+                  <input type="text" placeholder="API Token (Optional)" value={graphicsSettings.holyricsToken || ''} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, holyricsToken: e.target.value })} />
                 </div>
               )}
             </div>
