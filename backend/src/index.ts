@@ -800,8 +800,9 @@ io.on('connection', (socket) => {
         if (apiKeyToUse) {
           const prompt = `You are a Live Broadcast Context Engine. Extract key information from the following transcript text. 
 1. SCRIPTURE (Highest Priority): If the text contains ANY Bible verse, Bible quote, or Bible reference (e.g. "Genesis 1:3", "Let there be light"), you MUST extract it as type="scripture". Provide the standard reference string (e.g. "Genesis 1:3") as the 'content'. Also provide 2-3 related cross-reference verse strings in a 'crossReferences' array.
-CRITICAL RULE: NEVER classify anything biblical as type="knowledge". If it is from the Bible, it MUST be type="scripture".
-2. KNOWLEDGE: If the user states a general knowledge fact, quote, or definition (that is NOT biblical), extract a concise summary as type="knowledge".
+CRITICAL RULE: NEVER classify anything biblical as ONLY type="knowledge". If it is from the Bible, you MUST output a type="scripture" object.
+2. KNOWLEDGE: If the user states a fact, quote, or definition, extract a concise summary as type="knowledge". 
+SPECIAL CASE FOR BIBLE QUOTES: If the user quotes the Bible, you must output TWO objects: one 'scripture' object containing the Bible reference, and one 'knowledge' object containing the exact words they quoted.
 3. SONG: If they sing or recite a worship song, extract the title as type="song" (e.g. "Way Maker").
 Return a JSON object with a single key 'data' containing an array of these objects.
 
@@ -812,6 +813,10 @@ Example JSON output for text "In the beginning was the word":
       "type": "scripture",
       "content": "John 1:1",
       "crossReferences": ["Genesis 1:1", "1 John 1:1"]
+    },
+    {
+      "type": "knowledge",
+      "content": "In the beginning was the Word"
     }
   ]
 }

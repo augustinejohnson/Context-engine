@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { StagingCard } from "../page";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function OutputPage() {
   const [liveContent, setLiveContent] = useState<{ content: string; preset: string; type?: string } | null>(null);
@@ -21,13 +22,22 @@ export default function OutputPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const fallbackHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
-    socketRef.current = io(backendUrl);
+    
+    const initSocket = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error("[Output] No session found, cannot connect to backend.");
+        return;
+      }
 
-    socketRef.current.on("connect", () => {
-      socketRef.current?.emit("get_live_card");
-    });
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://context-engine-production-51a1.up.railway.app";
+      socketRef.current = io(backendUrl, {
+        auth: { token: session.access_token }
+      });
+
+      socketRef.current.on("connect", () => {
+        socketRef.current?.emit("get_live_card");
+      });
 
     socketRef.current.on("live_card", (cardData: StagingCard) => {
       setLiveContent({ content: cardData.content, preset: cardData.preset, type: cardData.type });
@@ -37,14 +47,17 @@ export default function OutputPage() {
       setLiveContent(null);
     });
 
-    socketRef.current.on("settings_updated", (settings: any) => {
-      if (settings.outputBgType) setBgType(settings.outputBgType);
-      if (settings.outputBgColor1) setBgColor1(settings.outputBgColor1);
-      if (settings.outputBgColor2) setBgColor2(settings.outputBgColor2);
-      if (settings.bibleBgType) setBibleBgType(settings.bibleBgType);
-      if (settings.bibleBgColor1) setBibleBgColor1(settings.bibleBgColor1);
-      if (settings.bibleBgColor2) setBibleBgColor2(settings.bibleBgColor2);
-    });
+      socketRef.current.on("settings_updated", (settings: any) => {
+        if (settings.outputBgType) setBgType(settings.outputBgType);
+        if (settings.outputBgColor1) setBgColor1(settings.outputBgColor1);
+        if (settings.outputBgColor2) setBgColor2(settings.outputBgColor2);
+        if (settings.bibleBgType) setBibleBgType(settings.bibleBgType);
+        if (settings.bibleBgColor1) setBibleBgColor1(settings.bibleBgColor1);
+        if (settings.bibleBgColor2) setBibleBgColor2(settings.bibleBgColor2);
+      });
+    };
+
+    initSocket();
 
     return () => {
       socketRef.current?.disconnect();
