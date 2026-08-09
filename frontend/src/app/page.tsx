@@ -443,7 +443,7 @@ export default function ContextEngineDashboard() {
           const payload = { text: data.content, show: true };
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
-            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
         }
@@ -464,7 +464,7 @@ export default function ContextEngineDashboard() {
           const url = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
           fetch(url + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
-            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: "", show: false })
           }).catch(e => console.error('[Bridge] Holyrics Error:', e.message));
         }
