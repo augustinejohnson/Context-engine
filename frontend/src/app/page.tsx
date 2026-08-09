@@ -456,6 +456,11 @@ export default function ContextEngineDashboard() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(mainPayload)
+            }).then(async (res) => {
+              if (!res.ok) {
+                const text = await res.text();
+                console.error('[Bridge] Holyrics ShowVerse HTTP Error:', res.status, text);
+              }
             }).catch(e => console.error('[Bridge] Holyrics ShowVerse Error:', e.message));
           } else {
             // Use CreateText for Lyrics & Knowledge
