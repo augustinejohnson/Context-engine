@@ -448,7 +448,7 @@ export default function ContextEngineDashboard() {
           }).catch(e => console.error('[Bridge] Holyrics Stage Monitor Error:', e.message));
 
           // 2. Send to Main Screen (Quick Presentation Text)
-          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowText`;
           const mainPayload = { text: data.content, quick_presentation: true };
           fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
@@ -486,7 +486,7 @@ export default function ContextEngineDashboard() {
             body: JSON.stringify({ text: "", show: false })
           }).catch(e => console.error('[Bridge] Holyrics Stage Error:', e.message));
 
-          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/text`;
+          const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowText`;
           fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
