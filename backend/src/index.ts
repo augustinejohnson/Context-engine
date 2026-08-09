@@ -804,6 +804,18 @@ CRITICAL RULE: NEVER classify anything biblical as type="knowledge". If it is fr
 2. KNOWLEDGE: If the user states a general knowledge fact, quote, or definition (that is NOT biblical), extract a concise summary as type="knowledge".
 3. SONG: If they sing or recite a worship song, extract the title as type="song" (e.g. "Way Maker").
 Return a JSON object with a single key 'data' containing an array of these objects.
+
+Example JSON output for text "In the beginning was the word":
+{
+  "data": [
+    {
+      "type": "scripture",
+      "content": "John 1:1",
+      "crossReferences": ["Genesis 1:1", "1 John 1:1"]
+    }
+  ]
+}
+
 Target mode: ${settings.aiExtractionTarget || 'all'}.
 
 Text: "${text}"`;
