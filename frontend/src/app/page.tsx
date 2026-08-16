@@ -645,7 +645,9 @@ export default function ContextEngineDashboard() {
 
   /* ── Auto-scroll transcript ── */
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   }, [transcript, interimText]);
 
   /* ── Sync placement settings to Staging Queue ── */
@@ -1705,6 +1707,9 @@ export default function ContextEngineDashboard() {
           </button>
           <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444" }} onClick={async () => {
             await supabase.auth.signOut();
+            localStorage.removeItem('ce_stagingQueue');
+            localStorage.removeItem('ce_transcript');
+            localStorage.removeItem('supabase_user');
             window.location.reload();
           }}>
             🚪 Sign Out
