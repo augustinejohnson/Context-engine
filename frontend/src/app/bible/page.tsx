@@ -212,7 +212,7 @@ export default function BibleBrowser() {
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
           // 1. Send to Stage Monitor (Communication Panel)
-          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
           const stagePayload = { text: data.content, show: true, display_ahead: true };
           fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
@@ -257,7 +257,7 @@ export default function BibleBrowser() {
         }
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
           fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
