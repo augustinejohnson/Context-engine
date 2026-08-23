@@ -21,6 +21,13 @@ export interface StagingCard {
   translation?: string; // Dual-Language Output
   songSections?: { name: string, text: string }[]; // For Lyric quick jumps
   activeSectionIndex?: number;
+  activeScriptureContext?: {
+    book: string;
+    chapter: number;
+    currentVerse: number;
+    translation: string;
+    nextVerses: { verse: number; text: string }[];
+  };
 }
 
 export interface GraphicsSettings {
@@ -120,6 +127,8 @@ export default function ContextEngineDashboard() {
   const [interimText, setInterimText] = useState("");
   const [stagingQueue, setStagingQueue] = useState<StagingCard[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
+
+  const activeScriptureContextRef = useRef<StagingCard['activeScriptureContext'] | null>(null);
 
   const [liveContent, setLiveContent] = useState<{ content: string; preset: PresetType } | null>(null);
 
@@ -596,6 +605,12 @@ export default function ContextEngineDashboard() {
 
     socketRef.current.on("live_card", (cardData: StagingCard) => {
       setLiveContent({ content: cardData.content, preset: cardData.preset });
+      if (cardData.activeScriptureContext) {
+        activeScriptureContextRef.current = cardData.activeScriptureContext;
+      } else if (cardData.type === 'scripture') {
+        // If it's a new scripture without context, clear the old context
+        activeScriptureContextRef.current = null;
+      }
     });
 
     return () => {
@@ -742,18 +757,79 @@ export default function ContextEngineDashboard() {
         setInterimText(interim);
         
         // --- SPEED OPTIMIZATION: Fast Fetch Scripture ---
-        // If the speaker says "Genesis 1 verse 3", we fetch it instantly on the interim result!
         const BIBLE_BOOKS_REGEX = "Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation|First Samuel|Second Samuel|First Kings|Second Kings|First Chronicles|Second Chronicles|First Corinthians|Second Corinthians|First Thessalonians|Second Thessalonians|First Timothy|Second Timothy|First Peter|Second Peter|First John|Second John|Third John";
-        // This will flexibly match: "John 3 16", "John chapter 3 and we'll read verse 16", "John 3:16"
-        const verseRegex = new RegExp(`(${BIBLE_BOOKS_REGEX})\\s*(?:chapter\\s*|chap\\s*)?(\\d+)[\\s\\w,]{0,40}(?:[:v]|verse\\s*)?(\\d+)`, "i");
         
+        // Matches: "John 3 16", "John 3:16", "John 3:16 to 18"
+        const verseRegex = new RegExp(`(${BIBLE_BOOKS_REGEX})\\s*(?:chapter\\s*|chap\\s*)?(\\d+)[\\s\\w,]{0,40}?(?:[:v]|verses?\\s*|and\\s*verses?\\s*|\\s+)(\\d+)(?:\\s*(?:to|-|and|and\\s*verses?)\\s*(\\d+))?`, "i");
+        // Matches: "John chapter 3"
+        const chapterRegex = new RegExp(`(${BIBLE_BOOKS_REGEX})\\s*(?:chapter\\s*|chap\\s*)(\\d+)`, "i");
+        
+        let targetRef = null;
+        let fetchPayload = null;
+
         const match = interim.match(verseRegex);
-        if (match && socketRef.current) {
-          const ref = `${match[1]} ${match[2]}:${match[3]}`;
-          if (ref !== lastFastFetchedRef.current) {
-             lastFastFetchedRef.current = ref;
-             console.log("[FAST-FETCH] Detected verse in interim:", ref);
-             socketRef.current.emit("fast_fetch_scripture", ref);
+        if (match) {
+          if (match[4]) {
+            targetRef = `${match[1]} ${match[2]}:${match[3]}-${match[4]}`;
+            fetchPayload = { book: match[1], chapter: parseInt(match[2]), verseStart: parseInt(match[3]), verseEnd: parseInt(match[4]), originalRef: targetRef };
+          } else {
+            targetRef = `${match[1]} ${match[2]}:${match[3]}`;
+            fetchPayload = { book: match[1], chapter: parseInt(match[2]), verseStart: parseInt(match[3]), verseEnd: null, originalRef: targetRef };
+          }
+        } else {
+          const cMatch = interim.match(chapterRegex);
+          if (cMatch) {
+            targetRef = `${cMatch[1]} ${cMatch[2]}`;
+            fetchPayload = { book: cMatch[1], chapter: parseInt(cMatch[2]), verseStart: 1, verseEnd: null, originalRef: targetRef, isChapterOnly: true };
+          }
+        }
+
+        if (targetRef && socketRef.current) {
+          if (targetRef !== lastFastFetchedRef.current) {
+             lastFastFetchedRef.current = targetRef;
+             console.log("[FAST-FETCH] Detected verse in interim:", targetRef);
+             socketRef.current.emit("fast_fetch_scripture", fetchPayload);
+             // Clear context so we don't accidentally auto-advance while fetching
+             activeScriptureContextRef.current = null;
+          }
+        }
+
+        // --- SPEED OPTIMIZATION: Auto-Advance Scriptures ---
+        if (activeScriptureContextRef.current && activeScriptureContextRef.current.nextVerses.length > 0) {
+          const ctx = activeScriptureContextRef.current;
+          const nextVerse = ctx.nextVerses[0];
+          
+          // 1. Explicit triggers: "next verse", "verse 17"
+          const explicitRegex = new RegExp(`(?:next\\s*verse|verse\\s*${nextVerse.verse})`, 'i');
+          
+          // 2. Implicit triggers: matching the first 4-5 words of the next verse
+          const words = nextVerse.text.replace(/[^\w\s]/g, '').toLowerCase().split(/\s+/).slice(0, 5).join(' ');
+          const implicitRegex = new RegExp(`\\b${words}\\b`, 'i');
+          
+          const cleanInterim = interim.replace(/[^\w\s]/g, '').toLowerCase();
+          
+          if (explicitRegex.test(interim) || (words.length > 10 && implicitRegex.test(cleanInterim))) {
+            console.log("[AUTO-ADVANCE] Triggered next verse:", nextVerse.verse);
+            const nextRef = `${ctx.book} ${ctx.chapter}:${nextVerse.verse}`;
+            
+            ctx.currentVerse = nextVerse.verse;
+            ctx.nextVerses.shift(); 
+            
+            const newCard: StagingCard = {
+              id: `card-auto-${Date.now()}`,
+              type: 'scripture',
+              content: `${nextRef} (${ctx.translation}) — ${nextVerse.text}`,
+              preset: 'full-screen',
+              activeScriptureContext: ctx
+            };
+            
+            setStagingQueue((prev) => [...prev, newCard]);
+            if (autoPushRef.current && socketRef.current) {
+              socketRef.current.emit("push_live", newCard);
+            }
+            
+            setInterimText("");
+            interim = ""; 
           }
         }
       }

@@ -635,24 +635,68 @@ io.on('connection', (socket) => {
   });
 
   // ---- Lightning Fast Exact Scripture Match ----
-  socket.on('fast_fetch_scripture', async (reference: string) => {
-    console.log(`[FAST-FETCH] Scripture triggered early via regex: "${reference}"`);
+  socket.on('fast_fetch_scripture', async (payload: any) => {
+    // Legacy support: if a string is passed
+    let p = payload;
+    if (typeof payload === 'string') {
+      const parts = payload.match(/^(.+?)\s+(\d+):(\d+)$/);
+      if (parts) p = { book: parts[1], chapter: parseInt(parts[2]), verseStart: parseInt(parts[3]), verseEnd: null, originalRef: payload };
+      else return; // unparseable legacy string
+    }
+
+    console.log(`[FAST-FETCH] Scripture triggered early via regex: "${p.originalRef}"`);
     try {
       const settings = tenantSettings.get(tenantId) || {};
       const version = settings.defaultBibleVersion || 'kjv';
-      const res = await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=${version}`);
+      
+      // Fetch the FULL chapter to allow prefetching
+      const fetchRef = `${p.book} ${p.chapter}`;
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(fetchRef)}?translation=${version}`);
       
       if (res.ok) {
         const data = await res.json();
-        const card = {
-          id: `card-${cardIdCounter++}`,
-          type: 'scripture' as const,
-          content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
-          preset: 'full-screen' as const,
-          scriptureReference: data.reference,
-        };
-        console.log(`[FAST-FETCH] Emitting scripture card instantly: ${card.content.substring(0, 50)}...`);
-        io.to(tenantId).emit('staging_card', card);
+        
+        let initialVerse = p.verseStart;
+        if (!initialVerse) initialVerse = 1;
+        
+        const verses = data.verses || [];
+        const startIdx = verses.findIndex((v: any) => v.verse === initialVerse);
+        
+        if (startIdx !== -1) {
+          const mainVerse = verses[startIdx];
+          // Pre-fetch the rest of the verses up to the end of the range, or the end of the chapter
+          let maxPrefetch = p.verseEnd ? (p.verseEnd - initialVerse) : 20; // limit to 20 verses ahead if no explicit range
+          if (p.isChapterOnly) maxPrefetch = verses.length;
+          
+          const nextVerses = [];
+          for (let i = 1; i <= maxPrefetch; i++) {
+            if (startIdx + i < verses.length) {
+              const nv = verses[startIdx + i];
+              if (p.verseEnd && nv.verse > p.verseEnd) break;
+              nextVerses.push({
+                verse: nv.verse,
+                text: nv.text.trim()
+              });
+            }
+          }
+
+          const card = {
+            id: `card-${cardIdCounter++}`,
+            type: 'scripture' as const,
+            content: `${p.book} ${p.chapter}:${mainVerse.verse} (${data.translation_id.toUpperCase()}) — ${mainVerse.text.trim()}`,
+            preset: 'full-screen' as const,
+            scriptureReference: `${p.book} ${p.chapter}:${mainVerse.verse}`,
+            activeScriptureContext: {
+              book: p.book,
+              chapter: p.chapter,
+              currentVerse: mainVerse.verse,
+              nextVerses: nextVerses,
+              translation: data.translation_id.toUpperCase()
+            }
+          };
+          console.log(`[FAST-FETCH] Emitting scripture card instantly: ${card.content.substring(0, 50)}...`);
+          io.to(tenantId).emit('staging_card', card);
+        }
       }
     } catch (e) {
       console.error('[FAST-FETCH] Error fetching scripture from api:', e);

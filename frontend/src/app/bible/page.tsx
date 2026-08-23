@@ -459,7 +459,26 @@ export default function BibleBrowser() {
       <div className="hb-reading-pane">
         {/* Header */}
         <div className="hb-reading-header">
-          <div className="hb-reading-ref">{selectedBook} {selectedChapter}</div>
+          <div className="hb-reading-ref">
+            {selectedBook} {selectedChapter}
+          </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flex: 1, padding: '0 15px' }}>
+            <input 
+              type="text" 
+              placeholder="Search e.g. John 3:16 (Enter to Push)" 
+              style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '6px 10px', borderRadius: '4px', outline: 'none' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value;
+                  if (val.trim()) {
+                    // Try to send fast fetch directly to backend and push live
+                    socketRef.current?.emit("fast_fetch_scripture", val);
+                    e.currentTarget.value = "";
+                  }
+                }
+              }}
+            />
+          </div>
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             <select className="hb-version-select" value={version} onChange={(e) => setVersion(e.target.value)}>
               <option value="KJV">KJV</option>
@@ -486,7 +505,10 @@ export default function BibleBrowser() {
             <div
               key={`${v.chapter}-${v.verse}`}
               className={`hb-verse-line ${selectedVerseIndex === i ? 'active' : ''}`}
-              onClick={() => setSelectedVerseIndex(i)}
+              onClick={() => {
+                setSelectedVerseIndex(i);
+                pushLive(v);
+              }}
             >
               <span className="hb-verse-num">{v.verse}</span>
               <span className="hb-verse-text">{v.text}</span>
@@ -562,7 +584,10 @@ export default function BibleBrowser() {
                 <div
                   key={v}
                   className={`hb-num-cell verse ${selectedVerseIndex === v - 1 ? 'active' : ''}`}
-                  onClick={() => setSelectedVerseIndex(v - 1)}
+                  onClick={() => {
+                    setSelectedVerseIndex(v - 1);
+                    if (bibleVerses[v - 1]) pushLive(bibleVerses[v - 1]);
+                  }}
                 >
                   {v}
                 </div>
