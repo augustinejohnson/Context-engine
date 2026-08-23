@@ -634,6 +634,31 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---- Lightning Fast Exact Scripture Match ----
+  socket.on('fast_fetch_scripture', async (reference: string) => {
+    console.log(`[FAST-FETCH] Scripture triggered early via regex: "${reference}"`);
+    try {
+      const settings = tenantSettings.get(tenantId) || {};
+      const version = settings.defaultBibleVersion || 'kjv';
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=${version}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        const card = {
+          id: `card-${cardIdCounter++}`,
+          type: 'scripture' as const,
+          content: `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`,
+          preset: 'full-screen' as const,
+          scriptureReference: data.reference,
+        };
+        console.log(`[FAST-FETCH] Emitting scripture card instantly: ${card.content.substring(0, 50)}...`);
+        io.to(tenantId).emit('staging_card', card);
+      }
+    } catch (e) {
+      console.error('[FAST-FETCH] Error fetching scripture from api:', e);
+    }
+  });
+
   // ---- Real-time transcript from browser Web Speech API ----
   socket.on('transcript_text', async (text: string) => {
     console.log(`[STT-Live] "${text}"`);
