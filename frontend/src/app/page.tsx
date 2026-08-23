@@ -1823,28 +1823,28 @@ export default function ContextEngineDashboard() {
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            🤖 AI Extraction {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
+            🤖 {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
           </button>
           <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} data-tooltip="Toggle Microphone" onClick={toggleAudio}>
-            {audioEnabled ? "🎙️" : "🔇"} Audio {audioEnabled ? "ON" : "OFF"}
+            {audioEnabled ? "🎙️ ON" : "🔇 OFF"}
           </button>
           <button className={`toggle-btn ${captionsEnabled ? "active" : ""}`} data-tooltip="Toggle Captions" onClick={() => setCaptionsEnabled(!captionsEnabled)}>
-            💬 Captions {captionsEnabled ? "ON" : "OFF"}
+            💬 {captionsEnabled ? "ON" : "OFF"}
           </button>
           <button className={`toggle-btn ${autoPush ? "active" : ""}`} data-tooltip="Auto-Push Cards" onClick={() => setAutoPush(!autoPush)}>
-            🚀 Auto-Push {autoPush ? "ON" : "OFF"}
+            🚀 {autoPush ? "ON" : "OFF"}
           </button>
           <button className="toggle-btn" data-tooltip="Open Settings" onClick={() => setSettingsOpen(true)}>
-            ⚙️ Settings
+            ⚙️
           </button>
-          <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444" }} onClick={async () => {
+          <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444", padding: '2px 7px' }} onClick={async () => {
             await supabase.auth.signOut();
             localStorage.removeItem('ce_stagingQueue');
             localStorage.removeItem('ce_transcript');
             localStorage.removeItem('supabase_user');
             window.location.reload();
           }}>
-            🚪 Sign Out
+            🚪
           </button>
         </div>
       </header>
@@ -1870,9 +1870,10 @@ export default function ContextEngineDashboard() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
+              title="Save Transcript"
             >
-              💾 Save
+              💾
             </button>
           </div>
           <div className="scrollable-content">
@@ -1900,9 +1901,10 @@ export default function ContextEngineDashboard() {
                   localStorage.removeItem('ce_stagingQueue');
                 }
               }}
-              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
+              title="Clear Queue"
             >
-              🗑️ Clear
+              🗑️
             </button>
           </div>
           <div className="scrollable-content">
