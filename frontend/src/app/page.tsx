@@ -554,7 +554,7 @@ export default function ContextEngineDashboard() {
       } 
       else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
-          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCommunicationPanel`;
+          const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
           fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
