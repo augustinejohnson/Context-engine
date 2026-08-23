@@ -225,19 +225,34 @@ export default function BibleBrowser() {
             const verseId = getHolyricsVerseId(data.scriptureReference);
             if (verseId) {
               const mainUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/ShowVerse`;
-              const mainPayload = { id: verseId };
+              const mainPayload = { id: verseId, references: data.scriptureReference };
               fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(mainPayload)
-            }).then(async (res) => {
-              if (!res.ok) {
-                const text = await res.text();
-                console.error('[Bridge] Holyrics ShowVerse HTTP Error:', res.status, text);
-              }
-            }).catch(e => console.error('[Bridge] Holyrics ShowVerse Error:', e.message));
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(mainPayload)
+              }).then(async (res) => {
+                if (!res.ok) {
+                  const text = await res.text();
+                  console.error('[Bridge] Holyrics ShowVerse HTTP Error:', res.status, text);
+                  throw new Error("ShowVerse failed");
+                }
+              }).catch(e => {
+                console.error('[Bridge] Holyrics ShowVerse Error:', e.message);
+                const fallbackUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
+                fetch(fallbackUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ text: data.content, show: true, display_ahead: true })
+                });
+              });
             } else {
               console.warn('[Bridge] Failed to map scripture reference to Holyrics ID:', data.scriptureReference);
+              const fallbackUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/CreateText`;
+              fetch(fallbackUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: data.content, show: true, display_ahead: true })
+              });
             }
           } else {
             // Use CreateText for Lyrics & Knowledge
