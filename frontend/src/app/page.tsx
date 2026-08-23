@@ -202,6 +202,7 @@ export default function ContextEngineDashboard() {
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const lastFastFetchedRef = useRef<string>("");
+  const chapterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoPushRef = useRef(autoPush);
   
   useEffect(() => {
@@ -778,6 +779,11 @@ export default function ContextEngineDashboard() {
 
         const match = interim.match(verseRegex);
         if (match) {
+          // If we hear a specific verse, clear any pending chapter-only timeout
+          if (chapterTimeoutRef.current) {
+            clearTimeout(chapterTimeoutRef.current);
+            chapterTimeoutRef.current = null;
+          }
           if (match[4]) {
             targetRef = `${match[1]} ${match[2]}:${match[3]}-${match[4]}`;
             fetchPayload = { book: match[1], chapter: parseInt(match[2]), verseStart: parseInt(match[3]), verseEnd: parseInt(match[4]), originalRef: targetRef };
@@ -788,8 +794,17 @@ export default function ContextEngineDashboard() {
         } else {
           const cMatch = interim.match(chapterRegex);
           if (cMatch) {
-            targetRef = `${cMatch[1]} ${cMatch[2]}`;
-            fetchPayload = { book: cMatch[1], chapter: parseInt(cMatch[2]), verseStart: 1, verseEnd: null, originalRef: targetRef, isChapterOnly: true };
+            const cRef = `${cMatch[1]} ${cMatch[2]}`;
+            if (cRef !== lastFastFetchedRef.current && !chapterTimeoutRef.current) {
+               // Delay chapter-only triggers by 2.5s. If they say a verse next, the regex will catch it and clear this timeout!
+               chapterTimeoutRef.current = setTimeout(() => {
+                  console.log("[FAST-FETCH] Chapter only timeout expired, pushing chapter:", cRef);
+                  socketRef.current?.emit("fast_fetch_scripture", { book: cMatch[1], chapter: parseInt(cMatch[2]), verseStart: 1, verseEnd: null, originalRef: cRef, isChapterOnly: true });
+                  lastFastFetchedRef.current = cRef;
+                  activeScriptureContextRef.current = null;
+                  chapterTimeoutRef.current = null;
+               }, 2500);
+            }
           }
         }
 
@@ -1760,14 +1775,13 @@ export default function ContextEngineDashboard() {
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: socketConnected ? '#22c55e' : '#ef4444', display: 'inline-block' }}></span>
             <span style={{ color: socketConnected ? '#22c55e' : '#ef4444' }}>{socketConnected ? 'Connected' : 'Reconnecting...'}</span>
           </div>
-        </h1>
-        <div className="toggles-group">
+          
           {screens.length > 0 && (
             <select 
               value={selectedScreenId} 
               onChange={e => setSelectedScreenId(e.target.value)}
               className="toggle-btn"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', marginLeft: '10px' }}
             >
               {screens.map((s, i) => (
                 <option key={s.id} value={s.id} style={{background: '#111'}}>
@@ -1784,6 +1798,8 @@ export default function ContextEngineDashboard() {
           >
             🖥️ Launch Output
           </button>
+        </h1>
+        <div className="toggles-group">
           <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B" data-tooltip="Ctrl + B">
             📖 Bible
           </button>
@@ -1807,7 +1823,7 @@ export default function ContextEngineDashboard() {
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            🎵 Lyrics {graphicsSettings.lyricsModeEnabled ? "ON" : "OFF"}
+            <span style={{ color: graphicsSettings.lyricsModeEnabled ? '#22c55e' : 'inherit' }}>●</span> Lyrics
           </button>
           <button className={`toggle-btn ${graphicsSettings.translationEnabled ? "active" : ""}`} data-tooltip="Toggle Translation" onClick={() => {
             const newSettings = {...graphicsSettings, translationEnabled: !graphicsSettings.translationEnabled};
@@ -1815,7 +1831,7 @@ export default function ContextEngineDashboard() {
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            🌐 Translate {graphicsSettings.translationEnabled ? "ON" : "OFF"}
+            <span style={{ color: graphicsSettings.translationEnabled ? '#22c55e' : 'inherit' }}>●</span> Translate
           </button>
           <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} data-tooltip="Toggle AI Extraction" onClick={() => {
             const newSettings = {...graphicsSettings, aiExtractionEnabled: !graphicsSettings.aiExtractionEnabled};
