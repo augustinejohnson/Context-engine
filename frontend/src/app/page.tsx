@@ -725,7 +725,8 @@ export default function ContextEngineDashboard() {
         // --- SPEED OPTIMIZATION: Fast Fetch Scripture ---
         // If the speaker says "Genesis 1 verse 3", we fetch it instantly on the interim result!
         const BIBLE_BOOKS_REGEX = "Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation|First Samuel|Second Samuel|First Kings|Second Kings|First Chronicles|Second Chronicles|First Corinthians|Second Corinthians|First Thessalonians|Second Thessalonians|First Timothy|Second Timothy|First Peter|Second Peter|First John|Second John|Third John";
-        const verseRegex = new RegExp(`(${BIBLE_BOOKS_REGEX})\\s*(?:chapter\\s*)?(\\d+)\\s*(?:[:v]|verse\\s*|\\s+)(\\d+)`, "i");
+        // This will flexibly match: "John 3 16", "John chapter 3 and we'll read verse 16", "John 3:16"
+        const verseRegex = new RegExp(`(${BIBLE_BOOKS_REGEX})\\s*(?:chapter\\s*|chap\\s*)?(\\d+)[\\s\\w,]{0,40}(?:[:v]|verse\\s*)?(\\d+)`, "i");
         
         const match = interim.match(verseRegex);
         if (match && socketRef.current) {
