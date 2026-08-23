@@ -590,6 +590,15 @@ export default function ContextEngineDashboard() {
     });
 
     socketRef.current.on("staging_card", (card: StagingCard) => {
+      // Prevent duplicate AI scriptures from breaking auto-advance
+      if (card.type === 'scripture' && !card.activeScriptureContext && activeScriptureContextRef.current) {
+        const ctx = activeScriptureContextRef.current;
+        if (card.content.toLowerCase().includes(`${ctx.book.toLowerCase()} ${ctx.chapter}`)) {
+          console.log("[AUTO-ADVANCE] Ignoring AI duplicate scripture to preserve tracking:", card.content);
+          return;
+        }
+      }
+
       setStagingQueue((prev) => [...prev, card]);
       
       // Instantly push to live if Auto-Push is enabled
@@ -1844,9 +1853,27 @@ export default function ContextEngineDashboard() {
       <main className="main-content">
         {/* LEFT: Live Transcript */}
         <section className="panel-column glass-panel">
-          <div className="panel-header">
-            Live Transcript
-            {audioEnabled && <div className="pulse-dot" />}
+          <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Live Transcript
+              {audioEnabled && <div className="pulse-dot" />}
+            </div>
+            <button 
+              onClick={() => {
+                if (transcript.length === 0) return alert("Transcript is empty");
+                const text = transcript.join("\n");
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `transcript-${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+            >
+              💾 Save
+            </button>
           </div>
           <div className="scrollable-content">
             {transcript.map((line, i) => (
@@ -1861,9 +1888,22 @@ export default function ContextEngineDashboard() {
 
         {/* MIDDLE: Staging Queue */}
         <section className="panel-column glass-panel">
-          <div className="panel-header">
-            Staging Queue
-            <span className="queue-badge">{stagingQueue.length} items</span>
+          <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Staging Queue
+              <span className="queue-badge">{stagingQueue.length} items</span>
+            </div>
+            <button 
+              onClick={() => {
+                if (confirm('Are you sure you want to clear the queue history?')) {
+                  setStagingQueue([]);
+                  localStorage.removeItem('ce_stagingQueue');
+                }
+              }}
+              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+            >
+              🗑️ Clear
+            </button>
           </div>
           <div className="scrollable-content">
             {stagingQueue.map((card, idx) => (

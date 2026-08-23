@@ -108,6 +108,7 @@ export default function BibleBrowser() {
   const [version, setVersion] = useState("KJV");
 
   const [session, setSession] = useState<any>(null);
+  const [bibleHistory, setBibleHistory] = useState<{ref: string, content: string}[]>([]);
   const verseListRef = useRef<HTMLDivElement>(null);
   const numberBufferRef = useRef<string>("");
   const numberBufferTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -130,6 +131,10 @@ export default function BibleBrowser() {
     const storedSettings = localStorage.getItem("contextEngineSettings");
     if (storedSettings) {
       setGraphicsSettings(JSON.parse(storedSettings));
+    }
+    const storedHistory = localStorage.getItem("ce_bibleHistory");
+    if (storedHistory) {
+      try { setBibleHistory(JSON.parse(storedHistory)); } catch (e) {}
     }
   }, []);
 
@@ -270,6 +275,19 @@ export default function BibleBrowser() {
             }).catch(e => console.error('[Bridge] Holyrics Network Error:', e.message));
           }
         }
+        if (data.proPresenter && data.proPresenter.enabled) {
+          const proUrl = `http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/trigger`;
+          const payload = [{ name: 'Message', text: { text: data.content } }];
+          fetch(proUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
+        }
+        if (data.vmix && data.vmix.enabled) {
+          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&Value=${encodeURIComponent(data.content)}`;
+          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
+        }
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
           const stageUrl = `http://${data.holyrics.ip}:${data.holyrics.port}/api/SetTextCP`;
@@ -285,6 +303,15 @@ export default function BibleBrowser() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: "", quick_presentation: true })
           }).catch(e => console.error('[Bridge] Holyrics Main Error:', e.message));
+        }
+        if (data.proPresenter && data.proPresenter.enabled) {
+          fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/clear`, {
+            method: 'GET'
+          }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
+        }
+        if (data.vmix && data.vmix.enabled) {
+          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&Value=`;
+          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       }
     });
@@ -322,16 +349,20 @@ export default function BibleBrowser() {
       case 'ArrowDown':
       case 'ArrowRight':
         e.preventDefault();
-        setSelectedVerseIndex(prev =>
-          prev === null ? 0 : Math.min(prev + 1, bibleVerses.length - 1)
-        );
+        setSelectedVerseIndex(prev => {
+          const next = prev === null ? 0 : Math.min(prev + 1, bibleVerses.length - 1);
+          if (bibleVerses[next]) pushLive(bibleVerses[next]);
+          return next;
+        });
         break;
       case 'ArrowUp':
       case 'ArrowLeft':
         e.preventDefault();
-        setSelectedVerseIndex(prev =>
-          prev === null ? 0 : Math.max(prev - 1, 0)
-        );
+        setSelectedVerseIndex(prev => {
+          const next = prev === null ? 0 : Math.max(prev - 1, 0);
+          if (bibleVerses[next]) pushLive(bibleVerses[next]);
+          return next;
+        });
         break;
       case 'Enter':
         e.preventDefault();
@@ -436,12 +467,21 @@ export default function BibleBrowser() {
 
   const pushLive = (v: any) => {
     const content = formatVerseContent(v);
-    const card: StagingCard = {
+    const ref = `${v.book} ${v.chapter}:${v.verse}`;
+    const card: StagingCard & { scriptureReference?: string } = {
       id: `card-${Date.now()}`,
       type: 'scripture',
       content: content,
-      preset: graphicsSettings?.scripturePosition || 'full-screen'
+      preset: graphicsSettings?.scripturePosition || 'full-screen',
+      scriptureReference: ref
     };
+    
+    setBibleHistory(prev => {
+      const newHist = [{ ref, content }, ...prev.filter(h => h.ref !== ref)].slice(0, 30);
+      localStorage.setItem('ce_bibleHistory', JSON.stringify(newHist));
+      return newHist;
+    });
+
     socketRef.current?.emit("push_live", card);
   };
 
@@ -590,6 +630,49 @@ export default function BibleBrowser() {
                   }}
                 >
                   {v}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        
+        {/* History / Recent */}
+        <div className="hb-section" style={{ marginTop: '20px' }}>
+          <div className="hb-section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Recent History</span>
+            <button 
+              onClick={() => {
+                if (confirm('Clear history?')) {
+                  setBibleHistory([]);
+                  localStorage.removeItem('ce_bibleHistory');
+                }
+              }}
+              style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '4px', fontSize: '0.7rem', padding: '2px 6px', cursor: 'pointer' }}
+            >
+              Clear
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto', paddingRight: '5px' }}>
+            {bibleHistory.length === 0 ? (
+              <div style={{ color: '#71717a', fontSize: '0.85rem' }}>No recent scriptures.</div>
+            ) : (
+              bibleHistory.map((item, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => {
+                    const card = {
+                      id: `card-${Date.now()}`,
+                      type: 'scripture' as const,
+                      content: item.content,
+                      preset: graphicsSettings?.scripturePosition || 'full-screen',
+                      scriptureReference: item.ref
+                    };
+                    socketRef.current?.emit("push_live", card);
+                  }}
+                  style={{ background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span style={{ color: '#fff', fontWeight: 'bold' }}>{item.ref}</span>
+                  <span style={{ color: '#3b82f6' }}>▶ Push</span>
                 </div>
               ))
             )}
