@@ -425,6 +425,11 @@ export default function ContextEngineDashboard() {
       alert(`[SYSTEM ERROR]\n${msg}`);
     });
     
+    socketRef.current.on("settings_updated", (settings) => {
+      setGraphicsSettings(settings);
+      localStorage.setItem('contextEngineSettings', JSON.stringify(settings));
+    });
+
     socketRef.current.on("songs_list", (songs) => {
       setSongsList(songs);
     });
@@ -1081,13 +1086,22 @@ export default function ContextEngineDashboard() {
           <p style={{ fontSize: '1.25rem', color: '#a1a1aa', marginBottom: '40px', maxWidth: '600px', lineHeight: 1.6 }}>
             Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Corpus AI.
           </p>
-          <button 
-            onClick={() => setShowAuthModal(true)}
-            className="glass-btn primary"
-            style={{ fontSize: '1.2rem', padding: '16px 32px', borderRadius: '32px', fontWeight: 600 }}
-          >
-            Start Your 7-Day Free Trial
-          </button>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="glass-btn primary"
+              style={{ fontSize: '1.2rem', padding: '16px 32px', borderRadius: '32px', fontWeight: 600 }}
+            >
+              Start Your 7-Day Free Trial
+            </button>
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="glass-btn"
+              style={{ fontSize: '1.2rem', padding: '16px 32px', borderRadius: '32px', fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+            >
+              Sign In
+            </button>
+          </div>
         </main>
 
         {/* Auth Modal */}
