@@ -397,12 +397,30 @@ io.on('connection', (socket) => {
     try {
       console.log(`[Songs] Saving fetched lyrics for: "${songData.title}"`);
       
-      const { data: songRecord, error: songErr } = await supabase.from('songs')
-        .insert({ title: songData.title, artist: songData.artist || 'Unknown', tenant_id: tenantId })
-        .select()
-        .single();
-      
-      if (songErr || !songRecord) throw new Error("Failed to insert song: " + songErr?.message);
+      let { data: existingSongs } = await supabase.from('songs')
+        .select('*')
+        .eq('title', songData.title)
+        .eq('tenant_id', tenantId);
+
+      let songRecord = existingSongs && existingSongs.length > 0 ? existingSongs[0] : null;
+
+      if (!songRecord) {
+        const { data: newRecord, error: songErr } = await supabase.from('songs')
+          .insert({ title: songData.title, artist: songData.artist || 'Unknown', tenant_id: tenantId })
+          .select()
+          .single();
+        if (songErr || !newRecord) throw new Error("Failed to insert song: " + songErr?.message);
+        songRecord = newRecord;
+      } else {
+        // If the song already exists, clean up its old lyrics and remove duplicates if any
+        if (existingSongs && existingSongs.length > 1) {
+           for (let i = 1; i < existingSongs.length; i++) {
+              await supabase.from('song_lyrics').delete().eq('song_id', existingSongs[i].id);
+              await supabase.from('songs').delete().eq('id', existingSongs[i].id);
+           }
+        }
+        await supabase.from('song_lyrics').delete().eq('song_id', songRecord.id);
+      }
 
       const lines = songData.lyrics.split('\n');
       let currentSection = 'Verse 1';
