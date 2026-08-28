@@ -249,12 +249,17 @@ io.on('connection', (socket) => {
   }
   
   // Load settings from DB on connect
-  supabase.from('system_settings').select('settings').eq('tenant_id', tenantId).single().then(({ data }) => {
-    if (data && data.settings) {
-      tenantSettings.set(tenantId, data.settings);
-      socket.emit('settings_updated', data.settings);
+  (async () => {
+    try {
+      const { data } = await supabase.from('system_settings').select('settings').eq('tenant_id', tenantId).single();
+      if (data && data.settings) {
+        tenantSettings.set(tenantId, data.settings);
+        socket.emit('settings_updated', data.settings);
+      }
+    } catch (e: any) {
+      console.error('[Settings] Load error:', e?.message || e);
     }
-  }).catch(e => console.error('[Settings] Load error:', e));
+  })();
 
   // Handle get_live_card request from output screen
   socket.on('get_live_card', () => {
