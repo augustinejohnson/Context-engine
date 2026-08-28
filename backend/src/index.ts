@@ -270,6 +270,21 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('start_session', () => {
+    activeSessionId = require('crypto').randomUUID();
+    console.log(`[Session] Started new session: ${activeSessionId}`);
+    io.to(tenantId).emit('session_status', activeSessionId);
+  });
+
+  socket.on('end_session', () => {
+    if (activeSessionId) {
+      console.log(`[Session] Ended session: ${activeSessionId}`);
+      io.to(tenantId).emit('session_ended', activeSessionId);
+      activeSessionId = null;
+      io.to(tenantId).emit('session_status', null);
+    }
+  });
+
   supabase.from('songs').select('*').eq('tenant_id', tenantId).then(({ data }) => {
     socket.emit('songs_list', data || []);
   });
