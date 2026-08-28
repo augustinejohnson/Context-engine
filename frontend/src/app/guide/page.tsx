@@ -277,7 +277,15 @@ export default function GuidePage() {
               ],
             },
             {
-              step: 'Step 3: Connect in Context Engine',
+              step: 'Step 3: Install CORS Extension (Two Computers Only)',
+              items: [
+                <>Browsers block local network connections for security reasons.</>,
+                <>Go to the Chrome Web Store and install the <Strong>Allow CORS: Access-Control-Allow-Origin</Strong> extension.</>,
+                <>Turn the extension <Strong>ON</Strong> to allow communication.</>,
+              ],
+            },
+            {
+              step: 'Step 4: Connect in Context Engine',
               items: [
                 <>Open <Strong>Settings → Integrations</Strong> in Context Engine.</>,
                 <>Toggle <Strong>Holyrics ON</Strong>.</>,
@@ -285,7 +293,7 @@ export default function GuidePage() {
               ],
             },
             {
-              step: 'Step 4: Test the Connection',
+              step: 'Step 5: Test the Connection',
               items: [
                 <>Say <Strong>&quot;John 3:16&quot;</Strong> to trigger a scripture detection.</>,
                 <>Push the card to screen and verify it appears in Holyrics.</>,
@@ -331,6 +339,10 @@ export default function GuidePage() {
             <Li>🔘 Toggle <Strong>ProPresenter ON</Strong> in Settings → Integrations.</Li>
             <Li>🌐 Enter the <Strong>IP address</Strong> and <Strong>Port</Strong> (default: <Code>1025</Code>).</Li>
           </ul>
+          <div style={{ marginTop: 16, padding: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: 8 }}>
+            <span style={{ color: '#60a5fa', fontWeight: 600 }}>💡 Important Note:</span>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0 0' }}>If vMix or ProPresenter are running on a different computer, you MUST install and enable the <Strong>Allow CORS</Strong> browser extension in Chrome for the connection to work.</p>
+          </div>
         </>
       ),
     },
