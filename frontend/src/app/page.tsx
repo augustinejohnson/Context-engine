@@ -203,6 +203,8 @@ export default function ContextEngineDashboard() {
   const recognitionRef = useRef<any>(null);
   const lastFastFetchedRef = useRef<string>("");
   const chapterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPhraseSearchRef = useRef<string>("");
+  const phraseSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoPushRef = useRef(autoPush);
   
   useEffect(() => {
@@ -820,6 +822,30 @@ export default function ContextEngineDashboard() {
              socketRef.current.emit("fast_fetch_scripture", fetchPayload);
              // Clear context so we don't accidentally auto-advance while fetching
              activeScriptureContextRef.current = null;
+          }
+        }
+
+        // --- SPEED OPTIMIZATION: Phrase-Based Bible Search ---
+        // If no explicit verse reference was detected AND the sentence is long enough,
+        // fire a phrase search against the Bolls Bible API
+        if (!targetRef && socketRef.current) {
+          const phraseWords = interim.trim().split(/\s+/);
+          if (phraseWords.length >= 6) {
+            // Debounce: only fire once every 3 seconds per unique phrase prefix
+            const phraseKey = phraseWords.slice(0, 6).join(' ').toLowerCase();
+            if (phraseKey !== lastPhraseSearchRef.current) {
+              lastPhraseSearchRef.current = phraseKey;
+              // Clear any pending phrase search timeout
+              if (phraseSearchTimeoutRef.current) {
+                clearTimeout(phraseSearchTimeoutRef.current);
+              }
+              // Wait 1.5 seconds for the speaker to finish their thought
+              phraseSearchTimeoutRef.current = setTimeout(() => {
+                console.log("[PHRASE-SEARCH] Sending phrase to backend:", interim.trim().substring(0, 60));
+                socketRef.current?.emit("phrase_search_scripture", interim.trim());
+                phraseSearchTimeoutRef.current = null;
+              }, 1500);
+            }
           }
         }
 

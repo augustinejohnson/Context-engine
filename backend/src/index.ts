@@ -729,6 +729,97 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---- Bolls Bible Book Number -> Name Mapping ----
+  const BOLLS_BOOK_MAP: Record<number, string> = {
+    1:'Genesis',2:'Exodus',3:'Leviticus',4:'Numbers',5:'Deuteronomy',6:'Joshua',7:'Judges',8:'Ruth',
+    9:'1 Samuel',10:'2 Samuel',11:'1 Kings',12:'2 Kings',13:'1 Chronicles',14:'2 Chronicles',
+    15:'Ezra',16:'Nehemiah',17:'Esther',18:'Job',19:'Psalms',20:'Proverbs',21:'Ecclesiastes',
+    22:'Song of Solomon',23:'Isaiah',24:'Jeremiah',25:'Lamentations',26:'Ezekiel',27:'Daniel',
+    28:'Hosea',29:'Joel',30:'Amos',31:'Obadiah',32:'Jonah',33:'Micah',34:'Nahum',35:'Habakkuk',
+    36:'Zephaniah',37:'Haggai',38:'Zechariah',39:'Malachi',
+    40:'Matthew',41:'Mark',42:'Luke',43:'John',44:'Acts',45:'Romans',
+    46:'1 Corinthians',47:'2 Corinthians',48:'Galatians',49:'Ephesians',50:'Philippians',
+    51:'Colossians',52:'1 Thessalonians',53:'2 Thessalonians',54:'1 Timothy',55:'2 Timothy',
+    56:'Titus',57:'Philemon',58:'Hebrews',59:'James',60:'1 Peter',61:'2 Peter',
+    62:'1 John',63:'2 John',64:'3 John',65:'Jude',66:'Revelation'
+  };
+
+  // ---- Lightning Fast PHRASE-BASED Scripture Search ----
+  socket.on('phrase_search_scripture', async (phrase: string) => {
+    if (!phrase || phrase.length < 15) return; // too short to be meaningful
+    
+    console.log(`[PHRASE-SEARCH] Searching for: "${phrase.substring(0, 60)}..."`);
+    try {
+      const settings = tenantSettings.get(tenantId) || {};
+      const version = (settings.defaultBibleVersion || 'NKJV').toUpperCase();
+      
+      const res = await fetch(`https://bolls.life/search/${version}/?search=${encodeURIComponent(phrase)}`);
+      if (!res.ok) {
+        console.error(`[PHRASE-SEARCH] Bolls API returned ${res.status}`);
+        return;
+      }
+      
+      const results = await res.json();
+      if (!Array.isArray(results) || results.length === 0) return;
+      
+      // Take only the #1 result — if the phrase is a real quote, the correct verse will always be #1
+      const topResult = results[0];
+      
+      // Strip HTML tags (<mark>, <S>, <sup>, <i>, <br/>) from the text
+      const cleanText = topResult.text
+        .replace(/<mark>|<\/mark>/g, '')
+        .replace(/<S>\d+<\/S>/g, '')
+        .replace(/<sup>.*?<\/sup>/g, '')
+        .replace(/<i>|<\/i>/g, '')
+        .replace(/<br\/?>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Confidence check: count how many words from the spoken phrase appear in the verse (in order)
+      const spokenWords = phrase.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+      const verseWords = cleanText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+      
+      let matchCount = 0;
+      let verseIdx = 0;
+      for (const word of spokenWords) {
+        for (let j = verseIdx; j < verseWords.length; j++) {
+          if (verseWords[j] === word || verseWords[j].includes(word)) {
+            matchCount++;
+            verseIdx = j + 1;
+            break;
+          }
+        }
+      }
+      
+      const confidence = spokenWords.length > 0 ? matchCount / spokenWords.length : 0;
+      console.log(`[PHRASE-SEARCH] Top result: ${BOLLS_BOOK_MAP[topResult.book] || '?'} ${topResult.chapter}:${topResult.verse} (confidence: ${(confidence * 100).toFixed(0)}%)`);
+      
+      // Only push if confidence is >= 60% (most spoken words found in order in the verse)
+      if (confidence < 0.60) {
+        console.log(`[PHRASE-SEARCH] Confidence too low (${(confidence * 100).toFixed(0)}%), skipping.`);
+        return;
+      }
+      
+      const bookName = BOLLS_BOOK_MAP[topResult.book] || `Book ${topResult.book}`;
+      const reference = `${bookName} ${topResult.chapter}:${topResult.verse}`;
+      
+      const card = {
+        id: `card-${cardIdCounter++}`,
+        type: 'scripture' as const,
+        content: `${reference} (${version}) — ${cleanText}`,
+        preset: 'full-screen' as const,
+        scriptureReference: reference,
+        phraseMatched: true // Flag so frontend knows this came from phrase search
+      };
+      
+      console.log(`[PHRASE-SEARCH] ✅ Pushing phrase-matched scripture: ${reference}`);
+      io.to(tenantId).emit('staging_card', card);
+      
+    } catch (e) {
+      console.error('[PHRASE-SEARCH] Error:', e);
+    }
+  });
+
   // ---- Real-time transcript from browser Web Speech API ----
   socket.on('transcript_text', async (text: string) => {
     console.log(`[STT-Live] "${text}"`);
