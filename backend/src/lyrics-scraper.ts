@@ -92,60 +92,64 @@ async function fetchFromLyricsOvh(songTitle: string): Promise<{ title: string, a
 }
 
 
-// ---- Genius Strategy (Fallback) ----
 async function fetchFromGenius(songTitle: string): Promise<{ title: string, artist: string, sections: { section: string, text: string }[] } | null> {
-  const query = encodeURIComponent(`${songTitle} lyrics genius`);
-  const searchUrl = `https://html.duckduckgo.com/html/?q=${query}`;
+  const query = encodeURIComponent(songTitle);
+  const searchUrl = `https://genius.com/api/search/multi?per_page=5&q=${query}`;
   
-  const searchRes = await fetch(searchUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-  });
-  const searchHtml = await searchRes.text();
-  const $search = cheerio.load(searchHtml);
-  
-  let geniusUrl = '';
-  $search('a.result__url, a[href*="genius.com"]').each((_i, el) => {
-    const href = $search(el).attr('href');
-    if (href && href.includes('genius.com') && !geniusUrl) {
-      let candidateUrl = '';
-      const match = href.match(/uddg=([^&]+)/);
-      if (match) {
-        candidateUrl = decodeURIComponent(match[1]);
-      } else if (href.startsWith('http')) {
-        candidateUrl = href;
+  try {
+    const searchRes = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
-      
-      // Ensure we are getting a song lyrics page, NOT an artist or album page
-      if (candidateUrl && !candidateUrl.includes('/artists/') && !candidateUrl.includes('/albums/')) {
-        geniusUrl = candidateUrl;
+    });
+    
+    if (!searchRes.ok) return null;
+    const searchData = await searchRes.json();
+    
+    let geniusUrl = '';
+    
+    // Find the first hit in the 'song' section
+    const sections = searchData.response?.sections || [];
+    for (const section of sections) {
+      if (section.type === 'song' && section.hits && section.hits.length > 0) {
+        for (const hit of section.hits) {
+          if (hit.type === 'song' && hit.result && hit.result.url) {
+            geniusUrl = hit.result.url;
+            break;
+          }
+        }
       }
+      if (geniusUrl) break;
     }
-  });
 
-  if (!geniusUrl) return null;
+    if (!geniusUrl) return null;
 
-  const geniusRes = await fetch(geniusUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-  });
-  const geniusHtml = await geniusRes.text();
-  const $ = cheerio.load(geniusHtml);
+    const geniusRes = await fetch(geniusUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    
+    if (!geniusRes.ok) return null;
+    const geniusHtml = await geniusRes.text();
+    const $ = cheerio.load(geniusHtml);
 
-  let rawLyrics = '';
-  $('[data-lyrics-container="true"]').each((_i, el) => {
-    $(el).find('br').replaceWith('\n');
-    rawLyrics += $(el).text() + '\n\n';
-  });
+    let rawLyrics = '';
+    $('[data-lyrics-container="true"]').each((_i, el) => {
+      $(el).find('br').replaceWith('\n');
+      rawLyrics += $(el).text() + '\n\n';
+    });
 
-  if (!rawLyrics.trim()) return null;
+    if (!rawLyrics.trim()) return null;
 
-  const scrapedTitle = $('h1[class^="SongHeader"]').first().text().trim() || songTitle;
-  const scrapedArtist = $('a[class^="SongHeader"]').first().text().trim() || 'Unknown Artist';
+    const scrapedTitle = $('h1[class^="SongHeader"]').first().text().trim() || songTitle;
+    const scrapedArtist = $('a[class^="SongHeader"]').first().text().trim() || 'Unknown Artist';
 
-  return parseGeniusLyrics(rawLyrics, scrapedTitle, scrapedArtist);
+    return parseGeniusLyrics(rawLyrics, scrapedTitle, scrapedArtist);
+  } catch (e: any) {
+    console.log('[Scraper] Error in Genius API search:', e?.message);
+    return null;
+  }
 }
 
 
