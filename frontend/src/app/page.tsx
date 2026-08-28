@@ -1953,62 +1953,47 @@ export default function ContextEngineDashboard() {
               ⏹ End Session
             </button>
           )}
-          <button className={`toggle-btn ${graphicsSettings.lyricsModeEnabled ? "active" : ""}`} data-tooltip="Toggle Lyrics Mode" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={() => {
+          <button className={`toggle-btn ${graphicsSettings.lyricsModeEnabled ? "active" : ""}`} data-tooltip="Toggle Lyrics Mode" onClick={() => {
             const newSettings = {...graphicsSettings, lyricsModeEnabled: !graphicsSettings.lyricsModeEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>Lyrics</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              <span style={{ color: graphicsSettings.lyricsModeEnabled ? '#22c55e' : 'inherit', fontSize: '0.6rem' }}>●</span> {graphicsSettings.lyricsModeEnabled ? "ON" : "OFF"}
-            </div>
+            <span style={{ color: graphicsSettings.lyricsModeEnabled ? '#22c55e' : 'inherit' }}>●</span> Lyrics: {graphicsSettings.lyricsModeEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${graphicsSettings.translationEnabled ? "active" : ""}`} data-tooltip="Toggle Translation" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={() => {
+          
+          <button className={`toggle-btn ${graphicsSettings.translationEnabled ? "active" : ""}`} data-tooltip="Toggle Translation" onClick={() => {
             const newSettings = {...graphicsSettings, translationEnabled: !graphicsSettings.translationEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>Translate</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              <span style={{ color: graphicsSettings.translationEnabled ? '#22c55e' : 'inherit', fontSize: '0.6rem' }}>●</span> {graphicsSettings.translationEnabled ? "ON" : "OFF"}
-            </div>
+            <span style={{ color: graphicsSettings.translationEnabled ? '#22c55e' : 'inherit' }}>●</span> Translate: {graphicsSettings.translationEnabled ? "ON" : "OFF"}
           </button>
-          <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} data-tooltip="Toggle AI Extraction" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={() => {
+          
+          <button className={`toggle-btn ${graphicsSettings.aiExtractionEnabled ? "active" : ""}`} data-tooltip="Toggle AI Extraction" onClick={() => {
             const newSettings = {...graphicsSettings, aiExtractionEnabled: !graphicsSettings.aiExtractionEnabled};
             setGraphicsSettings(newSettings);
             socketRef.current?.emit("update_settings", newSettings);
             localStorage.setItem('contextEngineSettings', JSON.stringify(newSettings));
           }}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>AI Engine</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              🤖 {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
-            </div>
+            🤖 AI: {graphicsSettings.aiExtractionEnabled ? "ON" : "OFF"}
           </button>
           
-          <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} data-tooltip="Toggle Microphone" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={toggleAudio}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>Audio</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              {audioEnabled ? "🎙️ ON" : "🔇 OFF"}
-            </div>
+          <button className={`toggle-btn ${audioEnabled ? "active" : ""}`} data-tooltip="Toggle Microphone" onClick={toggleAudio}>
+            🎙️ Audio: {audioEnabled ? "ON" : "OFF"}
           </button>
           
-          <button className={`toggle-btn ${captionsEnabled ? "active" : ""}`} data-tooltip="Toggle Captions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={() => setCaptionsEnabled(!captionsEnabled)}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>Captions</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              💬 {captionsEnabled ? "ON" : "OFF"}
-            </div>
+          <button className={`toggle-btn ${captionsEnabled ? "active" : ""}`} data-tooltip="Toggle Captions" onClick={() => setCaptionsEnabled(!captionsEnabled)}>
+            💬 Captions: {captionsEnabled ? "ON" : "OFF"}
           </button>
           
-          <button className={`toggle-btn ${autoPush ? "active" : ""}`} data-tooltip="Auto-Push Cards" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px 10px', height: 'auto', lineHeight: 1 }} onClick={() => setAutoPush(!autoPush)}>
-            <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>Auto-Push</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-              🚀 {autoPush ? "ON" : "OFF"}
-            </div>
+          <button className={`toggle-btn ${autoPush ? "active" : ""}`} data-tooltip="Auto-Push Cards" onClick={() => setAutoPush(!autoPush)}>
+            🚀 Push: {autoPush ? "ON" : "OFF"}
           </button>
+          
           <button className="toggle-btn" data-tooltip="Open Settings" onClick={() => setSettingsOpen(true)}>
-            ⚙️ Settings
+            ⚙️
           </button>
           <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444" }} onClick={async () => {
             await supabase.auth.signOut();
@@ -2043,10 +2028,10 @@ export default function ContextEngineDashboard() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
               title="Save Transcript"
             >
-              💾 Save
+              💾
             </button>
           </div>
           <div className="scrollable-content">
@@ -2074,10 +2059,10 @@ export default function ContextEngineDashboard() {
                   localStorage.removeItem('ce_stagingQueue');
                 }
               }}
-              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
               title="Clear Queue"
             >
-              🗑️ Clear
+              🗑️
             </button>
           </div>
           <div className="scrollable-content">

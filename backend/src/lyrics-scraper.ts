@@ -109,11 +109,17 @@ async function fetchFromGenius(songTitle: string): Promise<{ title: string, arti
   $search('a.result__url, a[href*="genius.com"]').each((_i, el) => {
     const href = $search(el).attr('href');
     if (href && href.includes('genius.com') && !geniusUrl) {
+      let candidateUrl = '';
       const match = href.match(/uddg=([^&]+)/);
       if (match) {
-        geniusUrl = decodeURIComponent(match[1]);
+        candidateUrl = decodeURIComponent(match[1]);
       } else if (href.startsWith('http')) {
-        geniusUrl = href;
+        candidateUrl = href;
+      }
+      
+      // Ensure we are getting a song lyrics page, NOT an artist or album page
+      if (candidateUrl && !candidateUrl.includes('/artists/') && !candidateUrl.includes('/albums/')) {
+        geniusUrl = candidateUrl;
       }
     }
   });
