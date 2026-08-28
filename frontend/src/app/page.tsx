@@ -732,12 +732,7 @@ export default function ContextEngineDashboard() {
     );
   }, [graphicsSettings.scripturePosition, graphicsSettings.lyricsPosition]);
 
-  /* ── Broadcast settings changes ── */
-  useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.emit("update_settings", graphicsSettings);
-    }
-  }, [graphicsSettings]);
+  /* ── Broadcast settings changes (Removed to prevent infinite loop) ── */
 
   /* ── Web Speech API: Start/Stop recognition ── */
   const startSpeechRecognition = useCallback(() => {
@@ -1051,7 +1046,8 @@ export default function ContextEngineDashboard() {
         color: '#f8fafc',
         fontFamily: "'Inter', sans-serif",
         position: 'relative',
-        overflow: 'hidden'
+        overflowX: 'hidden',
+        overflowY: 'auto'
       }}>
         {/* Background Mesh */}
         <div className="bg-particles" />
@@ -1131,7 +1127,7 @@ export default function ContextEngineDashboard() {
           </div>
 
           {/* Feature Cards */}
-          <div style={{ marginTop: '80px', width: '100%', maxWidth: '1100px', padding: '0 24px' }}>
+          <div style={{ marginTop: '40px', width: '100%', maxWidth: '1100px', padding: '0 24px' }}>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
@@ -1143,7 +1139,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚡</div>
@@ -1156,7 +1152,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔍</div>
@@ -1169,7 +1165,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🤖</div>
@@ -1189,7 +1185,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🎵</div>
@@ -1202,7 +1198,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔗</div>
@@ -1215,7 +1211,7 @@ export default function ContextEngineDashboard() {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '16px',
-                padding: '32px',
+                padding: '20px',
                 textAlign: 'left'
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '12px' }}>☁️</div>
@@ -1227,6 +1223,8 @@ export default function ContextEngineDashboard() {
             </div>
           </div>
         </main>
+        
+        <footer style={{ textAlign: 'center', padding: '20px', color: '#a1a1aa', marginTop: '20px', fontSize: '0.9rem' }}>Powered by Ronimation Studios</footer>
 
         {/* Auth Modal */}
         {showAuthModal && (
@@ -1989,16 +1987,16 @@ export default function ContextEngineDashboard() {
             🚀 {autoPush ? "ON" : "OFF"}
           </button>
           <button className="toggle-btn" data-tooltip="Open Settings" onClick={() => setSettingsOpen(true)}>
-            ⚙️
+            ⚙️ Settings
           </button>
-          <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444", padding: '2px 7px' }} onClick={async () => {
+          <button className="toggle-btn" data-tooltip="Sign Out" style={{ color: "#ef4444" }} onClick={async () => {
             await supabase.auth.signOut();
             localStorage.removeItem('ce_stagingQueue');
             localStorage.removeItem('ce_transcript');
             localStorage.removeItem('supabase_user');
             window.location.reload();
           }}>
-            🚪
+            🚪 Sign Out
           </button>
         </div>
       </header>
@@ -2024,10 +2022,10 @@ export default function ContextEngineDashboard() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               title="Save Transcript"
             >
-              💾
+              💾 Save
             </button>
           </div>
           <div className="scrollable-content">
@@ -2055,10 +2053,10 @@ export default function ContextEngineDashboard() {
                   localStorage.removeItem('ce_stagingQueue');
                 }
               }}
-              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', cursor: 'pointer' }}
+              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               title="Clear Queue"
             >
-              🗑️
+              🗑️ Clear
             </button>
           </div>
           <div className="scrollable-content">

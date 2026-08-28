@@ -35,12 +35,12 @@ function CollapsibleCard({ title, content, index }: { title: string; content: Re
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 24px',
+            padding: '16px',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
             color: '#f8fafc',
-            fontSize: 17,
+            fontSize: '1.1rem',
             fontWeight: 600,
             fontFamily: 'Inter, sans-serif',
             textAlign: 'left',
@@ -66,7 +66,7 @@ function CollapsibleCard({ title, content, index }: { title: string; content: Re
             overflow: 'hidden',
             transition: 'max-height 0.5s ease, opacity 0.4s ease, padding 0.4s ease',
             opacity: open ? 1 : 0,
-            padding: open ? '0 24px 20px 24px' : '0 24px 0 24px',
+            padding: open ? '0 16px 16px 16px' : '0 16px 0 16px',
           }}
         >
           <div style={{ borderTop: '1px solid #27272a', paddingTop: 16 }}>
