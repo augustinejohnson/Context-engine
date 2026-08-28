@@ -1067,6 +1067,7 @@ export default function ContextEngineDashboard() {
             </h1>
             <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Home</Link>
             <Link href="/about" style={{ color: '#a1a1aa', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>About</Link>
+            <Link href="/guide" style={{ color: '#a1a1aa', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Guide</Link>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <a 
@@ -1127,6 +1128,103 @@ export default function ContextEngineDashboard() {
             >
               Sign In
             </button>
+          </div>
+
+          {/* Feature Cards */}
+          <div style={{ marginTop: '80px', width: '100%', maxWidth: '1100px', padding: '0 24px' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '24px',
+              marginBottom: '24px'
+            }}>
+              {/* Row 1 */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚡</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>Lightning Scripture Detection</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  Hear a verse reference? It&apos;s on screen in milliseconds. Our regex engine intercepts explicit references faster than any human operator.
+                </p>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔍</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>Phrase-Based Bible Search</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  When a pastor quotes scripture without the reference, our engine searches the entire Bible and identifies the verse instantly.
+                </p>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🤖</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>AI-Powered Context</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  Our semantic AI understands paraphrased references and subtle biblical allusions, staging the right verse even when it&apos;s not quoted directly.
+                </p>
+              </div>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '24px'
+            }}>
+              {/* Row 2 */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🎵</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>Automatic Lyrics Sync</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  Worship team starts singing? The engine auto-detects the song, fetches lyrics from the internet, and stages them section by section.
+                </p>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔗</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>Broadcast Integration</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  Direct integration with Holyrics, vMix, and ProPresenter. Push scriptures and lyrics to your screens with a single click.
+                </p>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>☁️</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', margin: '0 0 10px 0' }}>Cloud-Synced Settings</h3>
+                <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                  Log in from any computer and your configuration follows you. IP addresses, API keys, preferences — all synced securely.
+                </p>
+              </div>
+            </div>
           </div>
         </main>
 
