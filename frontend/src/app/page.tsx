@@ -949,10 +949,31 @@ export default function ContextEngineDashboard() {
     }
   }, []);
 
+  /* ── Auto-restore audio state on mount ── */
+  useEffect(() => {
+    const savedAudio = sessionStorage.getItem("audioEnabled");
+    if (savedAudio === "true") {
+      setAudioEnabled(true);
+      // Wait for recognition to be ready
+      setTimeout(() => {
+        startSpeechRecognition();
+      }, 500);
+    }
+    
+    // Cleanup on unmount so we don't leave zombie microphones
+    return () => {
+       if (recognitionRef.current) {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.stop();
+       }
+    };
+  }, [startSpeechRecognition]);
+
   /* ── Toggle audio ── */
   const toggleAudio = useCallback(() => {
     const next = !audioEnabled;
     setAudioEnabled(next);
+    sessionStorage.setItem("audioEnabled", next ? "true" : "false");
     if (next) {
       startSpeechRecognition();
     } else {
@@ -1121,6 +1142,8 @@ export default function ContextEngineDashboard() {
           </h2>
           <p style={{ fontSize: '1.25rem', color: '#a1a1aa', marginBottom: '40px', maxWidth: '600px', lineHeight: 1.6 }}>
             Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Corpus AI.
+            <br/><br/>
+            <strong>Bottom Line:</strong> Corpus Engine doesn't just find scriptures faster — it reduces your media workforce, eliminates human error, and enhances your broadcast productivity dramatically. One person can now do the work that used to require three.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             <button 
