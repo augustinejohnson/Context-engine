@@ -638,6 +638,18 @@ export default function ContextEngineDashboard() {
   /* ── Keyboard Shortcuts ── */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for global shortcuts
+      if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        router.push('/bible');
+        return;
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        router.push('/lyrics');
+        return;
+      }
+
       // Don't trigger shortcuts if typing in an input or textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
@@ -1938,6 +1950,9 @@ export default function ContextEngineDashboard() {
         <div className="toggles-group">
           <button className="toggle-btn bible-nav-btn" onClick={() => router.push('/bible')} title="Shortcut: Ctrl + B" data-tooltip="Ctrl + B">
             📖 Bible
+          </button>
+          <button className="toggle-btn" onClick={() => router.push('/lyrics')} title="Shortcut: Ctrl + L" data-tooltip="Ctrl + L" style={{ background: "rgba(236, 72, 153, 0.2)", border: "1px solid #ec4899", color: "#fbcfe8", fontWeight: "bold" }}>
+            🎵 Lyrics
           </button>
           {subStatus.startsWith('trial_') && (
             <button className="toggle-btn" data-tooltip="Upgrade Plan" style={{ background: "rgba(234, 179, 8, 0.2)", border: "1px solid #eab308", color: "#fef08a", fontWeight: "bold" }} onClick={() => setShowSubscription(true)}>

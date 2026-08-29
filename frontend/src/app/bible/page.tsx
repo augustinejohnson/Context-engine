@@ -112,6 +112,7 @@ export default function BibleBrowser() {
   const verseListRef = useRef<HTMLDivElement>(null);
   const numberBufferRef = useRef<string>("");
   const numberBufferTimeout = useRef<NodeJS.Timeout | null>(null);
+  const targetVerseRef = useRef<number | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -167,9 +168,36 @@ export default function BibleBrowser() {
       setBibleVerses(data.verses || []);
       setLoadingVerses(false);
       if (data.verses && data.verses.length > 0) {
-        setSelectedVerseIndex(0);
+        if (targetVerseRef.current) {
+          // If a specific verse was requested via live sync, select it (1-indexed to 0-indexed)
+          setSelectedVerseIndex(Math.max(0, targetVerseRef.current - 1));
+          targetVerseRef.current = null; // reset
+        } else {
+          setSelectedVerseIndex(0);
+        }
       } else {
         setSelectedVerseIndex(null);
+      }
+    });
+
+    socketRef.current.on("live_card", (cardData) => {
+      if (cardData && cardData.type === 'scripture' && cardData.scriptureReference) {
+        const match = cardData.scriptureReference.match(/^(\d?\s*[a-zA-Z\s]+)\s+(\d+):(\d+)/);
+        if (match) {
+          const book = match[1].trim();
+          const chapter = parseInt(match[2], 10);
+          const verse = parseInt(match[3], 10);
+          
+          setSelectedBook(book);
+          setSelectedChapter(chapter);
+          targetVerseRef.current = verse;
+          
+          socketRef.current?.emit("fetch_bible_chapter", {
+            book,
+            chapter,
+            version: version
+          });
+        }
       }
     });
 

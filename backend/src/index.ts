@@ -712,7 +712,7 @@ io.on('connection', (socket) => {
           const mainVerse = verses[startIdx];
           // Pre-fetch the rest of the verses up to the end of the range, or the end of the chapter
           let maxPrefetch = p.verseEnd ? (p.verseEnd - initialVerse) : 20; // limit to 20 verses ahead if no explicit range
-          if (p.isChapterOnly) maxPrefetch = verses.length;
+          // For chapter-only triggers, still limit to 20 for auto-advance (not the entire chapter)
           
           const nextVerses = [];
           for (let i = 1; i <= maxPrefetch; i++) {
@@ -1065,18 +1065,31 @@ Text: "${text}"`;
           for (const item of parsed) {
             if (item.type === 'scripture') {
               // Try to resolve the scripture locally, fallback to bible-api
-              // The AI returns content like "Matthew 18:32"
+              // The AI returns content like "Matthew 18:32" or sometimes just "John 5"
               const match = item.content.match(/([1-3]?\s?[A-Za-z]+)\s+(\d+):(\d+)/);
+              // Also try to match chapter-only references like "John 5"
+              const chapterOnlyMatch = !match ? item.content.match(/([1-3]?\s?[A-Za-z]+)\s+(\d+)$/) : null;
               let cardContent = null;
               if (match) {
                 cardContent = await fetchScriptureLocalOrRemote(match[1].trim(), parseInt(match[2]), parseInt(match[3]), tenantId, settings);
+              } else if (chapterOnlyMatch) {
+                // AI returned a chapter-only reference (e.g. "John 5"), default to verse 1
+                cardContent = await fetchScriptureLocalOrRemote(chapterOnlyMatch[1].trim(), parseInt(chapterOnlyMatch[2]), 1, tenantId, settings);
+                // Override item.content for the scriptureReference below
+                item.content = `${chapterOnlyMatch[1].trim()} ${chapterOnlyMatch[2]}:1`;
               } else {
-                 // Fallback if regex fails to parse AI format
-                 const version = settings.defaultBibleVersion || 'kjv';
-                 const res = await fetch(`https://bible-api.com/${encodeURIComponent(item.content)}?translation=${version}`);
-                 if (res.ok) {
-                   const data = await res.json();
-                   cardContent = `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
+                 // Last resort fallback — but guard against dumping entire chapters
+                 // Only call bible-api if the content looks like a valid reference
+                 const looksLikeRef = /[a-zA-Z]+\s+\d+/.test(item.content);
+                 if (looksLikeRef) {
+                   // Append :1 to force a single verse instead of the whole chapter
+                   const safeRef = item.content.includes(':') ? item.content : `${item.content}:1`;
+                   const version = settings.defaultBibleVersion || 'kjv';
+                   const res = await fetch(`https://bible-api.com/${encodeURIComponent(safeRef)}?translation=${version}`);
+                   if (res.ok) {
+                     const data = await res.json();
+                     cardContent = `${data.reference} (${data.translation_id.toUpperCase()}) — ${data.text.trim()}`;
+                   }
                  }
               }
 
