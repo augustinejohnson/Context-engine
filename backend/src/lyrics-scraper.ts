@@ -2,23 +2,21 @@ import * as cheerio from 'cheerio';
 
 export async function fetchLyricsFromWeb(songTitle: string): Promise<{ title: string, artist: string, sections: { section: string, text: string }[] }> {
   
-  // --- Strategy 1: lyrics.ovh (Fast, reliable for worship songs) ---
-  try {
-    const result = await fetchFromLyricsOvh(songTitle);
-    if (result) return result;
-  } catch (e: any) {
-    console.log('[Scraper] lyrics.ovh failed, trying Genius fallback...', e?.message);
-  }
+  console.log(`[Scraper] Starting parallel search for: "${songTitle}"`);
 
-  // --- Strategy 2: DuckDuckGo → Genius.com scrape (Fallback) ---
-  try {
-    const result = await fetchFromGenius(songTitle);
-    if (result) return result;
-  } catch (e: any) {
-    console.log('[Scraper] Genius fallback failed too.', e?.message);
-  }
+  // Wrap functions so they reject if they return null, allowing Promise.any to work correctly
+  const ovhPromise = fetchFromLyricsOvh(songTitle).then(r => r ? r : Promise.reject('lyrics.ovh returned null'));
+  const geniusPromise = fetchFromGenius(songTitle).then(r => r ? r : Promise.reject('Genius returned null'));
 
-  throw new Error(`Could not find lyrics for "${songTitle}". Try searching with "Song Title - Artist Name" for better results.`);
+  try {
+    // Promise.any will return the first one that resolves successfully (doesn't throw).
+    const result = await Promise.any([ovhPromise, geniusPromise]);
+    console.log(`[Scraper] ✅ Search successful for "${songTitle}"`);
+    return result;
+  } catch (e: any) {
+    console.log(`[Scraper] ❌ Both sources failed for "${songTitle}"`);
+    throw new Error(`Could not find lyrics for "${songTitle}". Try searching with "Song Title - Artist Name" for better results.`);
+  }
 }
 
 
@@ -32,60 +30,39 @@ async function fetchFromLyricsOvh(songTitle: string): Promise<{ title: string, a
   for (const sep of separators) {
     if (songTitle.toLowerCase().includes(sep)) {
       const parts = songTitle.split(new RegExp(sep, 'i'));
-      artist = parts[0].trim();
-      title = parts[1].trim();
+      // In usually "Title - Artist", so parts[0] is title, parts[1] is artist
+      // Wait, earlier logic had parts[0] as artist. But usually it's "Title - Artist"! 
+      // Let's assume standard "Title - Artist" format.
+      title = parts[0].trim();
+      artist = parts[1].trim();
       break;
     }
   }
 
   // Try with artist if we parsed one out
   if (artist) {
-    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-    console.log(`[Scraper] Trying lyrics.ovh: ${url}`);
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.lyrics && data.lyrics.trim()) {
-        return parsePlainLyrics(data.lyrics, title, artist);
-      }
-    }
-    // Also try swapped (maybe user typed "Song - Artist" instead of "Artist - Song")
-    const url2 = `https://api.lyrics.ovh/v1/${encodeURIComponent(title)}/${encodeURIComponent(artist)}`;
-    console.log(`[Scraper] Trying lyrics.ovh (swapped): ${url2}`);
-    const res2 = await fetch(url2, { signal: AbortSignal.timeout(8000) });
-    if (res2.ok) {
-      const data2 = await res2.json();
-      if (data2.lyrics && data2.lyrics.trim()) {
-        return parsePlainLyrics(data2.lyrics, artist, title);
-      }
-    }
-  }
-
-  // No artist given — try each known worship artist
-  const worshipArtists = [
-    'Sinach', 'Hillsong Worship', 'Hillsong United', 'Bethel Music', 'Elevation Worship',
-    'Maverick City Music', 'Chris Tomlin', 'Matt Redman', 'Kari Jobe', 'Lauren Daigle',
-    'Phil Wickham', 'Nathaniel Bassey', 'Dunsin Oyekan', 'Tim Godfrey', 'Mercy Chinwo',
-    'Tasha Cobbs Leonard', 'William McDowell', 'Todd Dulaney', 'Travis Greene',
-    'Chandler Moore', 'Brandon Lake', 'Upperroom', 'Leeland', 'Brooke Ligertwood',
-    'Housefires', 'Jesus Culture', 'Planetshakers', 'Gateway Worship',
-    'Ada Ehi', 'Frank Edwards', 'Eben', 'Joe Praize', 'Prospa Ochimana',
-    'Moses Bliss', 'Minister GUC', 'Judikay', 'Chidinma', 'Victoria Orenze',
-    'CeCe Winans', 'Don Moen', 'Ron Kenoly', 'Michael W. Smith', 'Casting Crowns'
-  ];
-
-  for (const knownArtist of worshipArtists) {
     try {
-      const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(knownArtist)}/${encodeURIComponent(title)}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
       if (res.ok) {
         const data = await res.json();
         if (data.lyrics && data.lyrics.trim()) {
-          console.log(`[Scraper] ✅ Found "${title}" by ${knownArtist} via lyrics.ovh`);
-          return parsePlainLyrics(data.lyrics, title, knownArtist);
+          return parsePlainLyrics(data.lyrics, title, artist);
         }
       }
-    } catch { /* continue to next artist */ }
+      
+      // Also try swapped just in case
+      const url2 = `https://api.lyrics.ovh/v1/${encodeURIComponent(title)}/${encodeURIComponent(artist)}`;
+      const res2 = await fetch(url2, { signal: AbortSignal.timeout(3000) });
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (data2.lyrics && data2.lyrics.trim()) {
+          return parsePlainLyrics(data2.lyrics, artist, title);
+        }
+      }
+    } catch (e) {
+      // timeout or network error
+    }
   }
 
   return null;
