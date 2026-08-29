@@ -565,7 +565,8 @@ export default function ContextEngineDashboard() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&Value=${encodeURIComponent(data.content)}`;
+          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=${encodeURIComponent(data.content)}`;
+          console.log('[Bridge] vMix URL:', vmixUrl);
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       } 
@@ -591,7 +592,7 @@ export default function ContextEngineDashboard() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&Value=`;
+          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=`;
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       }
