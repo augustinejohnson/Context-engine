@@ -66,6 +66,7 @@ export interface GraphicsSettings {
   vmixEnabled: boolean;
   vmixIp: string;
   vmixInput: string;
+  vmixTextLayer: string;
   spokenWordMode: boolean;
   spokenWordPosition: PresetType;
   lyricsPosition: PresetType;
@@ -177,6 +178,7 @@ export default function ContextEngineDashboard() {
     vmixEnabled: false,
     vmixIp: "127.0.0.1",
     vmixInput: "Title",
+    vmixTextLayer: "Headline.Text",
     spokenWordMode: false,
     spokenWordPosition: "subtitle",
     lyricsPosition: "lower-third",
@@ -565,7 +567,11 @@ export default function ContextEngineDashboard() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=${encodeURIComponent(data.content)}`;
+          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          if (data.vmix.textLayer) {
+            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          }
+          vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
           console.log('[Bridge] vMix URL:', vmixUrl);
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
@@ -586,14 +592,18 @@ export default function ContextEngineDashboard() {
             body: JSON.stringify({ text: "", quick_presentation: true })
           }).catch(e => console.error('[Bridge] Holyrics Main Error:', e.message));
         }
+        if (data.vmix.enabled) {
+          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          if (data.vmix.textLayer) {
+            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          }
+          vmixUrl += `&Value=`;
+          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
+        }
         if (data.proPresenter.enabled) {
           fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/clear`, {
             method: 'GET'
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
-        }
-        if (data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=`;
-          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       }
     });
@@ -1643,8 +1653,9 @@ export default function ContextEngineDashboard() {
               </label>
               {graphicsSettings.vmixEnabled && (
                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                  <input type="text" placeholder="IP Address" value={graphicsSettings.vmixIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixIp: e.target.value })} />
-                  <input type="text" placeholder="Input Name" value={graphicsSettings.vmixInput} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixInput: e.target.value })} />
+                  <input type="text" placeholder="IP Address" style={{ flex: 1 }} value={graphicsSettings.vmixIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixIp: e.target.value })} />
+                  <input type="text" placeholder="Input Name/Number" style={{ flex: 1 }} value={graphicsSettings.vmixInput} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixInput: e.target.value })} />
+                  <input type="text" placeholder="Layer Name (optional)" style={{ flex: 1 }} title="e.g. Headline.Text" value={graphicsSettings.vmixTextLayer || ''} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixTextLayer: e.target.value })} />
                 </div>
               )}
             </div>

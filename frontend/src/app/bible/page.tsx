@@ -313,7 +313,11 @@ export default function BibleBrowser() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix && data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=${encodeURIComponent(data.content)}`;
+          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          if (data.vmix.textLayer) {
+            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          }
+          vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       } else if (data.action === 'clear_live') {
@@ -338,7 +342,11 @@ export default function BibleBrowser() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix && data.vmix.enabled) {
-          const vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=Headline.Text&Value=`;
+          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          if (data.vmix.textLayer) {
+            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          }
+          vmixUrl += `&Value=`;
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       }
