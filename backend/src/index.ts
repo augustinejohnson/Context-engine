@@ -1667,6 +1667,38 @@ app.get('/api/admin/analytics', adminCheck, async (req, res) => {
   }
 });
 
+// Export Session Transcript Endpoint
+app.get('/export-session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { data: logs, error } = await supabase.from('transcription_logs')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('timestamp', { ascending: true });
+      
+    if (error) throw error;
+    
+    if (!logs || logs.length === 0) {
+      return res.status(404).send('No logs found for this session.');
+    }
+    
+    let transcriptText = `Context Engine Session Export\nSession ID: ${sessionId}\nDate: ${new Date(logs[0].timestamp).toLocaleString()}\n\n`;
+    
+    logs.forEach(log => {
+      const time = new Date(log.timestamp).toLocaleTimeString();
+      const prefix = log.type === 'scripture' ? '[SCRIPTURE]' : (log.type === 'song' ? '[SONG]' : '[SPEECH]');
+      transcriptText += `[${time}] ${prefix} ${log.content}\n`;
+    });
+    
+    res.setHeader('Content-disposition', `attachment; filename=ContextEngine_Session_${sessionId.substring(0,8)}.txt`);
+    res.setHeader('Content-type', 'text/plain');
+    res.send(transcriptText);
+  } catch (e: any) {
+    console.error("Export Session Error:", e);
+    res.status(500).send("Error exporting session: " + e.message);
+  }
+});
+
 // Serve frontend static files (from Docker container)
 const frontendPath = path.join(__dirname, '../../frontend/out');
 app.use(express.static(frontendPath));
