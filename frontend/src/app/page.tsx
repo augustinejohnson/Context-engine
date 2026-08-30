@@ -1765,10 +1765,18 @@ export default function ContextEngineDashboard() {
                 onChange={(e) => setGraphicsSettings({ ...graphicsSettings, defaultBibleVersion: e.target.value })}
               >
                 <option value="kjv">KJV (King James Version)</option>
+                <option value="nkjv">NKJV (New King James Version)</option>
+                <option value="niv">NIV (New International Version)</option>
+                <option value="esv">ESV (English Standard Version)</option>
+                <option value="msg">MSG (The Message)*</option>
+                <option value="tpt">TPT (The Passion Translation)*</option>
                 <option value="web">WEB (World English Bible)</option>
                 <option value="asv">ASV (American Standard Version)</option>
                 <option value="bbe">BBE (Bible in Basic English)</option>
               </select>
+              <p style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '4px' }}>
+                *Requires manual database upload due to copyright.
+              </p>
             </div>
             <div className="setting-item">
               <label>Speech Recognition Language</label>

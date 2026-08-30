@@ -553,11 +553,13 @@ export default function BibleBrowser() {
               <option value="NIV">NIV</option>
               <option value="ESV">ESV</option>
               <option value="NKJV">NKJV</option>
+              <option value="MSG">MSG*</option>
+              <option value="TPT">TPT*</option>
               <option value="ASV">ASV</option>
               <option value="WEB">WEB</option>
               <option value="BBE">BBE</option>
             </select>
-            <div className="hb-connection-dot" style={{ background: socketConnected ? '#22c55e' : '#ef4444' }} />
+            <div className="hb-connection-dot" style={{ background: socketConnected ? '#22c55e' : '#ef4444' }} title={socketConnected ? "Connected to Server" : "Disconnected"} />
           </div>
         </div>
 

@@ -45,12 +45,14 @@ const tenantLiveCards: Record<string, any> = {};
 // Helper to fetch scripture locally or fallback to bible-api
 async function fetchScriptureLocalOrRemote(book: string, chapter: number, verse: number, tenantId: string, settings: any): Promise<string | null> {
   try {
+    const version = settings.defaultBibleVersion || 'kjv';
     const { data: verses } = await supabase.from('bible_verses')
       .select('*')
       .eq('tenant_id', tenantId)
       .ilike('book', `%${book}%`)
       .eq('chapter', chapter)
       .eq('verse', verse)
+      .eq('version', version.toUpperCase())
       .limit(1);
     
     if (verses && verses.length > 0) {
@@ -62,7 +64,6 @@ async function fetchScriptureLocalOrRemote(book: string, chapter: number, verse:
   }
 
   try {
-    const version = settings.defaultBibleVersion || 'kjv';
     const query = `${book} ${chapter}:${verse}`;
     const res = await fetch(`https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`);
     if (res.ok) {
@@ -1265,18 +1266,17 @@ Text: "${text}"`;
     version = version || 'KJV';
     let results: any[] = [];
 
-    if (version.toUpperCase() === 'KJV') {
-      try {
-        const { data } = await supabase.from('bible_verses')
-          .select('*').eq('tenant_id', tenantId)
-          .ilike('book', book).eq('chapter', chapter)
-          .order('verse', { ascending: true });
-        if (data && data.length > 0) {
-          results = data;
-        }
-      } catch (err) {
-        console.error('[Bible] Local fetch error:', err);
+    try {
+      const { data } = await supabase.from('bible_verses')
+        .select('*').eq('tenant_id', tenantId)
+        .ilike('book', book).eq('chapter', chapter)
+        .eq('version', version.toUpperCase()) // Filter by version in local DB too
+        .order('verse', { ascending: true });
+      if (data && data.length > 0) {
+        results = data;
       }
+    } catch (err) {
+      console.error('[Bible] Local fetch error:', err);
     }
 
     if (results.length === 0) {
