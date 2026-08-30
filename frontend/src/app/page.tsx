@@ -47,7 +47,7 @@ export interface GraphicsSettings {
   exitAnimation: string;
   animationSpeed: number;
   defaultBibleVersion: string;
-  outputBgType: "solid" | "transparent" | "chroma-green" | "chroma-blue" | "image" | "video";
+  outputBgType: "solid" | "transparent" | "chroma-green" | "chroma-blue" | "image" | "video" | "tech-grid" | "scanlines" | "starfield";
   outputBgColor1: string;
   outputBgColor2: string;
   speechLanguage: string;
