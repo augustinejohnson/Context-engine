@@ -1143,7 +1143,7 @@ export default function ContextEngineDashboard() {
           <p style={{ fontSize: '1.25rem', color: '#a1a1aa', marginBottom: '40px', maxWidth: '600px', lineHeight: 1.6 }}>
             Automatically transcribe spoken word, stage scripture references, and sync lyrics—all in real-time using Corpus AI.
             <br/><br/>
-            <strong>Bottom Line:</strong> Corpus Engine doesn't just find scriptures faster — it reduces your media workforce, eliminates human error, and enhances your broadcast productivity dramatically. One person can now do the work that used to require three.
+            <strong>Corpus Engine doesn't just find scriptures faster — it reduces your media workforce, eliminates human error, reduces cost and enhances your broadcast productivity dramatically. One person can now do the work that used to require three.</strong>
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             <button 
@@ -1164,7 +1164,7 @@ export default function ContextEngineDashboard() {
 
           {/* Feature Cards */}
           <div style={{ marginTop: '40px', width: '100%', maxWidth: '1100px', padding: '0 24px' }}>
-            <div style={{
+            <div className="features-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '24px',
@@ -1211,7 +1211,7 @@ export default function ContextEngineDashboard() {
                 </p>
               </div>
             </div>
-            <div style={{
+            <div className="features-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '24px'
