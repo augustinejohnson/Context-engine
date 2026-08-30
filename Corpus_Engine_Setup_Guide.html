@@ -197,7 +197,7 @@ When the preacher paraphrases a verse loosely (e.g., <em>&quot;That passage wher
 <h3>🎵 Automatic Song Lyrics</h3>
 <p>When the worship team starts singing, Corpus Engine can detect the song title and automatically fetch the complete lyrics from the internet. The lyrics are broken into sections (Verse 1, Chorus, Bridge, etc.) so you can push them one section at a time.</p>
 <h3>📖 Built-In Bible Browser</h3>
-<p>Press <strong>Ctrl + B</strong> to open a full Bible browser. Select any book, chapter, and verse. Click a verse to push it live instantly.</p>
+<p>Press <strong>Ctrl + B</strong> to open a full Bible browser. Select any book, chapter, and verse from multiple translations including NIV, NKJV, KJV, and exclusive premium translations like <strong>The Message (MSG)</strong> and <strong>The Passion Translation (TPT)</strong>. Click a verse to push it live instantly.</p>
 <h3>🎵 Lyrics Browser</h3>
 <p>Press <strong>Ctrl + L</strong> to open the Lyrics browser. All songs you&#39;ve previously saved are listed here. Click a song to see its sections and push them live.</p>
 <h3>🌐 Live Translation</h3>
@@ -447,8 +447,12 @@ When the preacher paraphrases a verse loosely (e.g., <em>&quot;That passage wher
 <td><code>127.0.0.1</code> (same computer) or the IPv4 address of the vMix computer (e.g., <code>192.168.1.108</code>)</td>
 </tr>
 <tr>
-<td><strong>Input</strong></td>
-<td>The input number of your Title in vMix (just the number, e.g., <code>1</code>)</td>
+<td><strong>Input Name/Number</strong></td>
+<td>The input number of your Title in vMix (e.g., <code>10</code>). Make absolutely sure this matches the actual number of the graphic input in vMix!</td>
+</tr>
+<tr>
+<td><strong>Layer Name (Optional)</strong></td>
+<td>If you are using a custom GT Title graphic, right-click the graphic in vMix, select <strong>Title Editor</strong>, and note the exact name of the main text field (e.g., <code>Headline.Text</code> or <code>Description.Text</code>). Enter that exact name here so Corpus Engine knows which box to put the text into. Leave blank if you are using a standard vMix title.</td>
 </tr>
 </tbody></table>
 <ol start="3">
@@ -668,6 +672,8 @@ When the preacher paraphrases a verse loosely (e.g., <em>&quot;That passage wher
 <li>Use the format: <strong>&quot;Song Title - Artist Name&quot;</strong> (e.g., <em>&quot;Way Maker - Sinach&quot;</em>)</li>
 <li>If the song is very new or regional, it might not be in the lyrics database. You can manually type and save lyrics.</li>
 </ul>
+<h3>&quot;What happens when I click End Session?&quot;</h3>
+<p><strong>Answer:</strong> Clicking End Session will NOT log you out. It safely packages the entire transcript of the spoken words from that session and silently downloads it to your computer as a text file for your records. Your dashboard state will remain active.</p>
 <hr>
 <h2>Summary</h2>
 <p>Corpus Engine transforms the way churches handle live media. By automating scripture detection, song lyric fetching, and direct integration with broadcast tools like Holyrics and vMix, it:</p>
