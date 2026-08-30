@@ -44,8 +44,8 @@ const tenantLiveCards: Record<string, any> = {};
 
 // Helper to fetch scripture locally or fallback to bible-api
 async function fetchScriptureLocalOrRemote(book: string, chapter: number, verse: number, tenantId: string, settings: any): Promise<string | null> {
+  const version = settings.defaultBibleVersion || 'kjv';
   try {
-    const version = settings.defaultBibleVersion || 'kjv';
     const { data: verses } = await supabase.from('bible_verses')
       .select('*')
       .eq('tenant_id', tenantId)
