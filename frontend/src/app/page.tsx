@@ -1692,7 +1692,7 @@ export default function ContextEngineDashboard() {
               <label>Animation Style</label>
               <select
                 value={graphicsSettings.outputBgType}
-                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, outputBgType: e.target.value })}
+                onChange={(e) => setGraphicsSettings({ ...graphicsSettings, outputBgType: e.target.value as any })}
               >
                 <option value="solid">Solid Color</option>
                 <option value="transparent">Transparent (OBS Browser Source)</option>
