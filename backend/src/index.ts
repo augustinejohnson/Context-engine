@@ -1094,8 +1094,13 @@ Text: "${text}"`;
                  }
               }
 
-              // If fetch fails, at least show the reference
+              // If fetch fails, we must be careful not to push massive hallucinated text blocks.
               if (!cardContent) {
+                // Check if the AI hallucinated an entire verse in the content field
+                if (item.content && item.content.length > 35) {
+                  console.log('[NLP-Live] Discarding likely hallucinated scripture reference:', item.content.substring(0, 50));
+                  continue; // Skip this item entirely
+                }
                 cardContent = item.content;
               }
 
