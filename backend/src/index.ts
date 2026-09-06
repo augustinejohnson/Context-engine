@@ -1298,7 +1298,7 @@ Text: "${text}"`;
             const data = JSON.parse(text);
             if (data.verses && Array.isArray(data.verses)) {
               results = data.verses.map((v: any) => ({
-                book: data.reference.split(' ')[0], // Approximate
+                book: v.book_name || book,
                 chapter: v.chapter,
                 verse: v.verse,
                 text: v.text.trim(),
