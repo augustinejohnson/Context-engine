@@ -313,12 +313,30 @@ export default function BibleBrowser() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix && data.vmix.enabled) {
-          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
-          if (data.vmix.textLayer) {
-            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          const vmixBase = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          
+          if (data.vmix.refLayer && data.type === 'scripture' && data.content) {
+            const dashIdx = data.content.indexOf('—');
+            const emIdx = data.content.indexOf('–');
+            const splitIdx = dashIdx !== -1 ? dashIdx : emIdx;
+            let refText = data.scriptureReference || '';
+            let bodyText = data.content;
+            if (splitIdx !== -1) {
+              refText = data.content.substring(0, splitIdx).trim();
+              bodyText = data.content.substring(splitIdx + 1).trim();
+            }
+            let bodyUrl = vmixBase;
+            if (data.vmix.textLayer) bodyUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+            bodyUrl += `&Value=${encodeURIComponent(bodyText)}`;
+            fetch(bodyUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Body Error:', e.message));
+            let refUrl = vmixBase + `&SelectedName=${encodeURIComponent(data.vmix.refLayer)}&Value=${encodeURIComponent(refText)}`;
+            fetch(refUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Ref Error:', e.message));
+          } else {
+            let vmixUrl = vmixBase;
+            if (data.vmix.textLayer) vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+            vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
+            fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
           }
-          vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
-          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
         }
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
@@ -348,6 +366,10 @@ export default function BibleBrowser() {
           }
           vmixUrl += `&Value=`;
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
+          if (data.vmix.refLayer) {
+            let refUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=${encodeURIComponent(data.vmix.refLayer)}&Value=`;
+            fetch(refUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Ref Clear Error:', e.message));
+          }
         }
       }
     });

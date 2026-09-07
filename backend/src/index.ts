@@ -868,7 +868,7 @@ io.on('connection', (socket) => {
         content: text,
         holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
         proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
-        vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer }
+        vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer, refLayer: settings.vmixRefLayer }
       });
     }
 
@@ -1229,7 +1229,7 @@ Text: "${text}"`;
       scriptureReference: cardData.scriptureReference,
       holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
       proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
-      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer }
+      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer, refLayer: settings.vmixRefLayer }
     });
 
     if (activeSessionId) {
@@ -1258,7 +1258,7 @@ Text: "${text}"`;
       action: 'clear_live',
       holyrics: { enabled: settings.holyricsEnabled, ip: settings.holyricsIp, port: settings.holyricsPort, token: settings.holyricsToken },
       proPresenter: { enabled: settings.proPresenterEnabled, ip: settings.proPresenterIp, port: settings.proPresenterPort },
-      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer }
+      vmix: { enabled: settings.vmixEnabled, ip: settings.vmixIp, input: settings.vmixInput, textLayer: settings.vmixTextLayer, refLayer: settings.vmixRefLayer }
     });
   });
 

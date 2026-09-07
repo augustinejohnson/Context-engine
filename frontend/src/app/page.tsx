@@ -67,6 +67,7 @@ export interface GraphicsSettings {
   vmixIp: string;
   vmixInput: string;
   vmixTextLayer: string;
+  vmixRefLayer: string;
   spokenWordMode: boolean;
   spokenWordPosition: PresetType;
   lyricsPosition: PresetType;
@@ -179,6 +180,7 @@ export default function ContextEngineDashboard() {
     vmixIp: "127.0.0.1",
     vmixInput: "Title",
     vmixTextLayer: "Headline.Text",
+    vmixRefLayer: "",
     spokenWordMode: false,
     spokenWordPosition: "subtitle",
     lyricsPosition: "lower-third",
@@ -567,13 +569,36 @@ export default function ContextEngineDashboard() {
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
         if (data.vmix.enabled) {
-          let vmixUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
-          if (data.vmix.textLayer) {
-            vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+          const vmixBase = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
+          
+          // If a separate Reference Layer is configured, split the content
+          if (data.vmix.refLayer && data.type === 'scripture' && data.content) {
+            // Split "Book Ch:V (VER) — text" into reference and body
+            const dashIdx = data.content.indexOf('—');
+            const emIdx = data.content.indexOf('–'); // also check en-dash
+            const splitIdx = dashIdx !== -1 ? dashIdx : emIdx;
+            let refText = data.scriptureReference || '';
+            let bodyText = data.content;
+            if (splitIdx !== -1) {
+              refText = data.content.substring(0, splitIdx).trim();
+              bodyText = data.content.substring(splitIdx + 1).trim();
+            }
+            // Send body to the main text layer
+            let bodyUrl = vmixBase;
+            if (data.vmix.textLayer) bodyUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+            bodyUrl += `&Value=${encodeURIComponent(bodyText)}`;
+            fetch(bodyUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Body Error:', e.message));
+            // Send reference to the reference layer
+            let refUrl = vmixBase + `&SelectedName=${encodeURIComponent(data.vmix.refLayer)}&Value=${encodeURIComponent(refText)}`;
+            fetch(refUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Ref Error:', e.message));
+          } else {
+            // Single layer mode (original behavior)
+            let vmixUrl = vmixBase;
+            if (data.vmix.textLayer) vmixUrl += `&SelectedName=${encodeURIComponent(data.vmix.textLayer)}`;
+            vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
+            fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
           }
-          vmixUrl += `&Value=${encodeURIComponent(data.content)}`;
-          console.log('[Bridge] vMix URL:', vmixUrl);
-          fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
+          console.log('[Bridge] vMix push sent');
         }
       } 
       else if (data.action === 'clear_live') {
@@ -599,6 +624,11 @@ export default function ContextEngineDashboard() {
           }
           vmixUrl += `&Value=`;
           fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
+          // Also clear the reference layer if configured
+          if (data.vmix.refLayer) {
+            let refUrl = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}&SelectedName=${encodeURIComponent(data.vmix.refLayer)}&Value=`;
+            fetch(refUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Ref Clear Error:', e.message));
+          }
         }
         if (data.proPresenter.enabled) {
           fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/clear`, {
@@ -1652,10 +1682,16 @@ export default function ContextEngineDashboard() {
                 <span title={`API Status: ${apiStatuses.vmix}`} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: apiStatuses.vmix === 'online' ? '#22c55e' : '#ef4444', display: 'inline-block', marginLeft: 'auto' }}></span>
               </label>
               {graphicsSettings.vmixEnabled && (
-                <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                  <input type="text" placeholder="IP Address" style={{ flex: 1 }} value={graphicsSettings.vmixIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixIp: e.target.value })} />
-                  <input type="text" placeholder="Input Name/Number" style={{ flex: 1 }} value={graphicsSettings.vmixInput} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixInput: e.target.value })} />
-                  <input type="text" placeholder="Layer Name (optional)" style={{ flex: 1 }} title="e.g. Headline.Text" value={graphicsSettings.vmixTextLayer || ''} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixTextLayer: e.target.value })} />
+                <div style={{ marginTop: "10px" }}>
+                  <div style={{ display: "flex", gap: "10px", marginBottom: "8px" }}>
+                    <input type="text" placeholder="IP Address" style={{ flex: 1 }} value={graphicsSettings.vmixIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixIp: e.target.value })} />
+                    <input type="text" placeholder="Input Name/Number" style={{ flex: 1 }} value={graphicsSettings.vmixInput} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixInput: e.target.value })} />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input type="text" placeholder="Body Layer (e.g. Headline.Text)" style={{ flex: 1 }} title="The layer for the verse text body" value={graphicsSettings.vmixTextLayer || ''} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixTextLayer: e.target.value })} />
+                    <input type="text" placeholder="Reference Layer (optional)" style={{ flex: 1 }} title="A separate layer for the reference line, e.g. Description.Text" value={graphicsSettings.vmixRefLayer || ''} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, vmixRefLayer: e.target.value })} />
+                  </div>
+                  <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)", marginTop: "6px" }}>If you set a Reference Layer, the scripture reference (e.g. "1 Cor 3:5 (KJV)") will go to that layer and only the verse text will go to the Body Layer.</p>
                 </div>
               )}
             </div>
