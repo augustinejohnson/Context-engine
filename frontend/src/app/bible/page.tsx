@@ -245,37 +245,43 @@ export default function BibleBrowser() {
       if (data.action === 'push_live') {
         if (data.holyrics.enabled) {
           const holyricsIps = (data.holyrics.ip || '127.0.0.1').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+          const holyricsPorts = (data.holyrics.port || '8090').split(',').map((p: string) => p.trim());
+          const holyricsTokens = data.holyrics.token ? data.holyrics.token.split(',').map((t: string) => t.trim()) : [];
           
-          holyricsIps.forEach((targetIp: string) => {
+          holyricsIps.forEach((targetIp: string, index: number) => {
+            const targetPort = holyricsPorts[index] || holyricsPorts[0] || '8090';
+            const targetToken = holyricsTokens[index] || holyricsTokens[0] || '';
+            const tokenQuery = targetToken ? `?token=${targetToken}` : '';
+            
             // 1. Send to Stage Monitor (Communication Panel)
-            const stageUrl = `http://${targetIp}:${data.holyrics.port}/api/SetTextCP`;
+            const stageUrl = `http://${targetIp}:${targetPort}/api/SetTextCP`;
             const stagePayload = { text: data.content, show: true, display_ahead: true };
-            fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            fetch(stageUrl + tokenQuery, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(stagePayload)
-            }).catch(e => console.error(`[Bridge] Holyrics Stage Monitor Error (${targetIp}):`, e.message));
+            }).catch(e => console.error(`[Bridge] Holyrics Stage Monitor Error (${targetIp}:${targetPort}):`, e.message));
 
             // 2. Send to Main Screen
             if (data.type === 'scripture' && data.scriptureReference) {
               const verseId = getHolyricsVerseId(data.scriptureReference);
               if (verseId) {
-                const mainUrl = `http://${targetIp}:${data.holyrics.port}/api/ShowVerse`;
+                const mainUrl = `http://${targetIp}:${targetPort}/api/ShowVerse`;
                 const mainPayload = { id: verseId, references: data.scriptureReference };
-                fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+                fetch(mainUrl + tokenQuery, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(mainPayload)
                 }).then(async (res) => {
                   if (!res.ok) {
                     const text = await res.text();
-                    console.error(`[Bridge] Holyrics ShowVerse HTTP Error (${targetIp}):`, res.status, text);
+                    console.error(`[Bridge] Holyrics ShowVerse HTTP Error (${targetIp}:${targetPort}):`, res.status, text);
                     throw new Error("ShowVerse failed");
                   }
                 }).catch(e => {
-                  console.error(`[Bridge] Holyrics ShowVerse Error (${targetIp}):`, e.message);
-                  const fallbackUrl = `http://${targetIp}:${data.holyrics.port}/api/CreateText`;
-                  fetch(fallbackUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+                  console.error(`[Bridge] Holyrics ShowVerse Error (${targetIp}:${targetPort}):`, e.message);
+                  const fallbackUrl = `http://${targetIp}:${targetPort}/api/CreateText`;
+                  fetch(fallbackUrl + tokenQuery, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: data.content, show: true, display_ahead: true })
@@ -283,8 +289,8 @@ export default function BibleBrowser() {
                 });
               } else {
                 console.warn(`[Bridge] Failed to map scripture reference to Holyrics ID (${targetIp}):`, data.scriptureReference);
-                const fallbackUrl = `http://${targetIp}:${data.holyrics.port}/api/CreateText`;
-                fetch(fallbackUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+                const fallbackUrl = `http://${targetIp}:${targetPort}/api/CreateText`;
+                fetch(fallbackUrl + tokenQuery, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ text: data.content, show: true, display_ahead: true })
@@ -292,18 +298,18 @@ export default function BibleBrowser() {
               }
             } else {
               // Use CreateText for Lyrics & Knowledge
-              const mainUrl = `http://${targetIp}:${data.holyrics.port}/api/CreateText`;
+              const mainUrl = `http://${targetIp}:${targetPort}/api/CreateText`;
               const mainPayload = { text: data.content, show: true, display_ahead: true };
-              fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+              fetch(mainUrl + tokenQuery, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(mainPayload)
               }).then(async (res) => {
                 if (!res.ok) {
                   const text = await res.text();
-                  console.error(`[Bridge] Holyrics HTTP Error (${targetIp}):`, res.status, text);
+                  console.error(`[Bridge] Holyrics HTTP Error (${targetIp}:${targetPort}):`, res.status, text);
                 }
-              }).catch(e => console.error(`[Bridge] Holyrics Network Error (${targetIp}):`, e.message));
+              }).catch(e => console.error(`[Bridge] Holyrics Network Error (${targetIp}:${targetPort}):`, e.message));
             }
           });
         }
@@ -345,21 +351,27 @@ export default function BibleBrowser() {
       } else if (data.action === 'clear_live') {
         if (data.holyrics.enabled) {
           const holyricsIps = (data.holyrics.ip || '127.0.0.1').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+          const holyricsPorts = (data.holyrics.port || '8090').split(',').map((p: string) => p.trim());
+          const holyricsTokens = data.holyrics.token ? data.holyrics.token.split(',').map((t: string) => t.trim()) : [];
           
-          holyricsIps.forEach((targetIp: string) => {
-            const stageUrl = `http://${targetIp}:${data.holyrics.port}/api/SetTextCP`;
-            fetch(stageUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+          holyricsIps.forEach((targetIp: string, index: number) => {
+            const targetPort = holyricsPorts[index] || holyricsPorts[0] || '8090';
+            const targetToken = holyricsTokens[index] || holyricsTokens[0] || '';
+            const tokenQuery = targetToken ? `?token=${targetToken}` : '';
+
+            const stageUrl = `http://${targetIp}:${targetPort}/api/SetTextCP`;
+            fetch(stageUrl + tokenQuery, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ text: "", show: false })
-            }).catch(e => console.error(`[Bridge] Holyrics Stage Error (${targetIp}):`, e.message));
+            }).catch(e => console.error(`[Bridge] Holyrics Stage Error (${targetIp}:${targetPort}):`, e.message));
 
-            const mainUrl = `http://${targetIp}:${data.holyrics.port}/api/ShowText`;
-            fetch(mainUrl + (data.holyrics.token ? `?token=${data.holyrics.token}` : ''), {
+            const mainUrl = `http://${targetIp}:${targetPort}/api/ShowText`;
+            fetch(mainUrl + tokenQuery, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ text: "", quick_presentation: true })
-            }).catch(e => console.error(`[Bridge] Holyrics Main Error (${targetIp}):`, e.message));
+            }).catch(e => console.error(`[Bridge] Holyrics Main Error (${targetIp}:${targetPort}):`, e.message));
           });
         }
         if (data.proPresenter && data.proPresenter.enabled) {
