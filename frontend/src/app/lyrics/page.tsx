@@ -77,17 +77,26 @@ export default function LyricsBrowser() {
 
     socketRef.current.on("songs_list", (data: Song[]) => {
       setSongs(data || []);
+      setSelectedSong(prev => {
+        if (!prev) return null;
+        const stillExists = (data || []).find(s => s.id === prev.id);
+        if (!stillExists) {
+          setSongSections([]);
+          return null;
+        }
+        return stillExists;
+      });
     });
 
     socketRef.current.on("song_lyrics_result", (data) => {
       setLoadingLyrics(false);
       if (data && data.lyrics) {
         // Parse the lyrics
-        const parts = data.lyrics.split(/\n\n+/);
+        const parts = data.lyrics.split(/\n\s*\n/);
         const sections = [];
         let currentHeader = 'Section';
         for (const part of parts) {
-          const lines = part.trim().split('\n');
+          const lines = part.trim().split(/\r?\n/);
           let textLines = lines;
           if (lines[0] && lines[0].startsWith('[') && lines[0].endsWith(']')) {
             currentHeader = lines[0].slice(1, -1);
@@ -294,7 +303,7 @@ export default function LyricsBrowser() {
     socketRef.current?.emit("push_live", {
       id: `card-${Date.now()}`,
       type: "lyric",
-      content: `${selectedSong} - ${section.name}\n\n${section.text}`,
+      content: `${selectedSong.title} - ${section.name}\n\n${section.text}`,
       preset: graphicsSettings?.lyricsPosition || "lower-third",
       songSections: songSections
     });

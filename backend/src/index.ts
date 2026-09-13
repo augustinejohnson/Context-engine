@@ -422,52 +422,65 @@ io.on('connection', (socket) => {
   });
 
   // ---- Save Genius Lyrics (edit_song_lyrics) ----
-  socket.on('edit_song_lyrics', async (songData: { title: string; artist: string; lyrics: string }) => {
+  socket.on('edit_song_lyrics', async (songData: { id?: number; title: string; artist: string; lyrics: string }) => {
     try {
       console.log(`[Songs] Saving fetched lyrics for: "${songData.title}"`);
       
-      let { data: existingSongs } = await supabase.from('songs')
-        .select('*')
-        .eq('title', songData.title)
-        .eq('tenant_id', tenantId);
-
-      let songRecord = existingSongs && existingSongs.length > 0 ? existingSongs[0] : null;
-
-      if (!songRecord) {
-        const { data: newRecord, error: songErr } = await supabase.from('songs')
-          .insert({ title: songData.title, artist: songData.artist || 'Unknown', tenant_id: tenantId })
-          .select()
-          .single();
-        if (songErr || !newRecord) throw new Error("Failed to insert song: " + songErr?.message);
-        songRecord = newRecord;
+      let songRecord = null;
+      
+      if (songData.id) {
+        // We are editing an existing song
+        await supabase.from('songs').update({ title: songData.title, artist: songData.artist || 'Unknown' }).eq('id', songData.id).eq('tenant_id', tenantId);
+        const { data } = await supabase.from('songs').select('*').eq('id', songData.id).single();
+        songRecord = data;
       } else {
-        // If the song already exists, clean up its old lyrics and remove duplicates if any
-        if (existingSongs && existingSongs.length > 1) {
-           for (let i = 1; i < existingSongs.length; i++) {
-              await supabase.from('song_lyrics').delete().eq('song_id', existingSongs[i].id);
-              await supabase.from('songs').delete().eq('id', existingSongs[i].id);
-           }
+        // Fallback: look up by title
+        let { data: existingSongs } = await supabase.from('songs')
+          .select('*')
+          .eq('title', songData.title)
+          .eq('tenant_id', tenantId);
+
+        songRecord = existingSongs && existingSongs.length > 0 ? existingSongs[0] : null;
+
+        if (!songRecord) {
+          const { data: newRecord, error: songErr } = await supabase.from('songs')
+            .insert({ title: songData.title, artist: songData.artist || 'Unknown', tenant_id: tenantId })
+            .select()
+            .single();
+          if (songErr || !newRecord) throw new Error("Failed to insert song: " + songErr?.message);
+          songRecord = newRecord;
+        } else {
+          // If the song already exists, clean up its old lyrics and remove duplicates if any
+          if (existingSongs && existingSongs.length > 1) {
+             for (let i = 1; i < existingSongs.length; i++) {
+                await supabase.from('song_lyrics').delete().eq('song_id', existingSongs[i].id);
+                await supabase.from('songs').delete().eq('id', existingSongs[i].id);
+             }
+          }
         }
+      }
+      
+      if (songRecord) {
         await supabase.from('song_lyrics').delete().eq('song_id', songRecord.id);
       }
 
-      const lines = songData.lyrics.split('\n');
-      let currentSection = 'Verse 1';
-      let currentText = '';
+      const rawBlocks = songData.lyrics.split(/\n\s*\n/);
       const sections: { section: string; text: string }[] = [];
+      let currentSection = 'Verse 1';
 
-      for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
-        if (line.startsWith('[') && line.endsWith(']')) {
-          if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
-          currentSection = line.replace('[', '').replace(']', '');
-          currentText = '';
-        } else {
-          currentText += line + '\n';
+      for (const block of rawBlocks) {
+        if (!block.trim()) continue;
+        const blockLines = block.trim().split(/\r?\n/);
+        let textLines = blockLines;
+        if (blockLines[0].startsWith('[') && blockLines[0].endsWith(']')) {
+           currentSection = blockLines[0].replace('[', '').replace(']', '');
+           textLines = blockLines.slice(1);
+        }
+        if (textLines.length > 0) {
+           sections.push({ section: currentSection, text: textLines.join('\n') });
         }
       }
-      if (currentText.trim()) sections.push({ section: currentSection, text: currentText.trim() });
+
       if (sections.length === 0) sections.push({ section: 'Full Song', text: songData.lyrics.trim() });
 
       for (const section of sections) {
@@ -503,7 +516,7 @@ io.on('connection', (socket) => {
       if (lyrics) {
         combinedLyrics = lyrics.map((l: any) => `[${l.section}]\n${l.text}`).join('\n\n');
       }
-      socket.emit('song_lyrics_result', { title: song.title, artist: song.artist, lyrics: combinedLyrics });
+      socket.emit('song_lyrics_result', { id: song.id, title: song.title, artist: song.artist, lyrics: combinedLyrics });
     } catch (e: any) {
       console.error('[Songs] Error getting lyrics:', e);
       socket.emit('fetch_error', `Failed to get lyrics for "${title}"`);
@@ -511,11 +524,19 @@ io.on('connection', (socket) => {
   });
 
   // ---- Delete Song ----
-  socket.on('delete_song', async (title: string) => {
+  socket.on('delete_song', async (idOrTitle: any) => {
     try {
-      const { error } = await supabase.from('songs').delete().eq('tenant_id', tenantId).eq('title', title);
+      let query = supabase.from('songs').delete().eq('tenant_id', tenantId);
+      
+      if (typeof idOrTitle === 'number' || (typeof idOrTitle === 'string' && !isNaN(Number(idOrTitle)))) {
+        query = query.eq('id', Number(idOrTitle));
+      } else {
+        query = query.eq('title', idOrTitle);
+      }
+
+      const { error } = await query;
       if (error) throw error;
-      console.log(`[Songs] Deleted song: ${title}`);
+      console.log(`[Songs] Deleted song: ${idOrTitle}`);
       
       const { data: songs } = await supabase.from('songs').select('*').eq('tenant_id', tenantId);
       io.to(tenantId).emit('songs_list', songs || []);

@@ -141,7 +141,7 @@ export default function ContextEngineDashboard() {
 
   const [importSong, setImportSong] = useState({ title: "", artist: "", lyrics: "" });
   const [isFetchingSong, setIsFetchingSong] = useState(false);
-  const [editingSong, setEditingSong] = useState<{ title: string, lyrics: string } | null>(null);
+  const [editingSong, setEditingSong] = useState<{ id?: number, title: string, artist: string, lyrics: string } | null>(null);
 
   const [graphicsSettings, setGraphicsSettings] = useState<GraphicsSettings>({
     fontFamily: "Inter",
@@ -677,7 +677,7 @@ export default function ContextEngineDashboard() {
       }
     });
 
-    socketRef.current.on("song_lyrics_result", (data: { title: string, lyrics: string }) => {
+    socketRef.current.on("song_lyrics_result", (data: { id?: number, title: string, artist: string, lyrics: string }) => {
       setEditingSong(data);
     });
 
@@ -1641,7 +1641,7 @@ export default function ContextEngineDashboard() {
                                 View
                               </button>
                               <button 
-                                onClick={() => { if(confirm(`Delete "${song.title}"?`)) socketRef.current?.emit('delete_song', song.title); }}
+                                onClick={() => { if(confirm(`Delete "${song.title}"?`)) socketRef.current?.emit('delete_song', song.id); }}
                                 style={{ background: "transparent", color: "#ef4444", border: "1px solid #ef4444", borderRadius: "3px", padding: "2px 6px", cursor: "pointer", fontSize: "0.75rem" }}
                               >
                                 Delete
@@ -1992,8 +1992,28 @@ export default function ContextEngineDashboard() {
           <button className="close-btn" onClick={() => setEditingSong(null)}>✕</button>
         </div>
         <div className="settings-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Title</label>
+              <input 
+                type="text" 
+                value={editingSong?.title || ''} 
+                onChange={(e) => setEditingSong(prev => prev ? { ...prev, title: e.target.value } : null)}
+                style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '8px', borderRadius: '4px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Artist</label>
+              <input 
+                type="text" 
+                value={editingSong?.artist || ''} 
+                onChange={(e) => setEditingSong(prev => prev ? { ...prev, artist: e.target.value } : null)}
+                style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '8px', borderRadius: '4px' }}
+              />
+            </div>
+          </div>
           <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '10px' }}>
-            Format sections like <code>[Verse 1]</code> or <code>[Chorus]</code>. Each section must be separated by a double line break.
+            Format sections like <code>[Verse 1]</code> or <code>[Chorus]</code>. Press Enter <strong>twice</strong> to break into a new slide.
           </p>
           <textarea 
             value={editingSong?.lyrics || ''} 
