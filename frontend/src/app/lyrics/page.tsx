@@ -15,9 +15,16 @@ export default function LyricsBrowser() {
 
   const [session, setSession] = useState<any>(null);
 
-  const [songs, setSongs] = useState<string[]>([]);
+  interface Song {
+    id: number;
+    title: string;
+    artist: string;
+    lyrics: string;
+  }
+
+  const [songs, setSongs] = useState<Song[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSong, setSelectedSong] = useState<string | null>(null);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const [songSections, setSongSections] = useState<{name: string, text: string}[]>([]);
   const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(null);
@@ -68,7 +75,7 @@ export default function LyricsBrowser() {
 
     socketRef.current.on("disconnect", () => setSocketConnected(false));
 
-    socketRef.current.on("songs_list", (data: string[]) => {
+    socketRef.current.on("songs_list", (data: Song[]) => {
       setSongs(data || []);
     });
 
@@ -331,7 +338,7 @@ export default function LyricsBrowser() {
     }
   }, [selectedSectionIndex]);
 
-  const filteredSongs = songs.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredSongs = songs.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.artist.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="hb-page" style={{ display: 'flex', flexDirection: 'row', width: '100vw' }}>
@@ -367,17 +374,19 @@ export default function LyricsBrowser() {
           )}
           {filteredSongs.map((song, i) => (
             <div
-              key={i}
-              className={`hb-verse-line ${selectedSong === song ? 'active' : ''}`}
+              key={song.id}
+              className={`hb-verse-line ${selectedSong?.id === song.id ? 'active' : ''}`}
               onClick={() => {
                 setSelectedSong(song);
                 setLoadingLyrics(true);
                 setSongSections([]);
                 setSelectedSectionIndex(null);
-                socketRef.current?.emit('get_song_lyrics', song);
+                socketRef.current?.emit('get_song_lyrics', song.title);
               }}
             >
-              <span className="hb-verse-text" style={{ fontWeight: 500 }}>{song}</span>
+              <span className="hb-verse-text" style={{ fontWeight: 500 }}>
+                {song.title} <span style={{ color: "#94a3b8", fontSize: "0.85em" }}>({song.artist})</span>
+              </span>
             </div>
           ))}
         </div>
@@ -391,7 +400,7 @@ export default function LyricsBrowser() {
       <div className="hb-grids-panel" style={{ flex: 1, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="hb-section">
           <div className="hb-section-label" style={{ fontSize: '1rem', padding: '10px 0', color: '#fff' }}>
-            {selectedSong ? selectedSong : 'Select a song to view lyrics'}
+            {selectedSong ? `${selectedSong.title} (${selectedSong.artist})` : 'Select a song to view lyrics'}
           </div>
         </div>
 
