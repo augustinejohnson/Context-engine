@@ -542,7 +542,7 @@ io.on('connection', (socket) => {
       io.to(tenantId).emit('songs_list', songs || []);
     } catch (e: any) {
       console.error('[Songs] Error deleting song:', e);
-      socket.emit('fetch_error', `Failed to delete "${title}"`);
+      socket.emit('fetch_error', `Failed to delete "${idOrTitle}"`);
     }
   });
 
