@@ -303,7 +303,7 @@ export default function LyricsBrowser() {
     socketRef.current?.emit("push_live", {
       id: `card-${Date.now()}`,
       type: "lyric",
-      content: `${selectedSong.title} - ${section.name}\n\n${section.text}`,
+      content: section.text,
       preset: graphicsSettings?.lyricsPosition || "lower-third",
       songSections: songSections
     });
@@ -455,9 +455,11 @@ export default function LyricsBrowser() {
                 pushLiveSection(i);
               }}
             >
-              <span style={{ fontWeight: 'bold', color: '#c4b5fd', marginBottom: '8px', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {sec.name}
-              </span>
+              { (i === 0 || songSections[i - 1].name !== sec.name) && (
+                <span style={{ fontWeight: 'bold', color: '#c4b5fd', marginBottom: '8px', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  {sec.name}
+                </span>
+              ) }
               <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '0.95rem' }}>
                 {sec.text}
               </span>
