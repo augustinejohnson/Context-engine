@@ -63,6 +63,9 @@ export interface GraphicsSettings {
   proPresenterEnabled: boolean;
   proPresenterIp: string;
   proPresenterPort: string;
+  freeShowEnabled: boolean;
+  freeShowIp: string;
+  freeShowPort: string;
   vmixEnabled: boolean;
   vmixIp: string;
   vmixInput: string;
@@ -176,6 +179,9 @@ export default function ContextEngineDashboard() {
     proPresenterEnabled: false,
     proPresenterIp: "127.0.0.1",
     proPresenterPort: "20562",
+    freeShowEnabled: false,
+    freeShowIp: "127.0.0.1",
+    freeShowPort: "5505",
     vmixEnabled: false,
     vmixIp: "127.0.0.1",
     vmixInput: "Title",
@@ -195,7 +201,7 @@ export default function ContextEngineDashboard() {
   const [isSongsListExpanded, setIsSongsListExpanded] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(true);
-  const [apiStatuses, setApiStatuses] = useState({ holyrics: 'offline', proPresenter: 'offline', vmix: 'offline' });
+  const [apiStatuses, setApiStatuses] = useState({ holyrics: 'offline', proPresenter: 'offline', vmix: 'offline', freeShow: 'offline' });
   const [showSubscription, setShowSubscription] = useState(false);
   const [serverBuildId, setServerBuildId] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -578,6 +584,13 @@ export default function ContextEngineDashboard() {
             body: JSON.stringify({ message: data.content })
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
         }
+        if (data.freeShow && data.freeShow.enabled) {
+          fetch(`http://${data.freeShow.ip}:${data.freeShow.port}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear_slide' })
+          }).catch(e => console.error('[Bridge] FreeShow Error:', e.message));
+        }
         if (data.vmix.enabled) {
           const vmixBase = `http://${data.vmix.ip}:8088/api/?Function=SetText&Input=${encodeURIComponent(data.vmix.input)}`;
           
@@ -609,6 +622,13 @@ export default function ContextEngineDashboard() {
             fetch(vmixUrl, { mode: 'no-cors' }).catch(e => console.error('[Bridge] vMix Error:', e.message));
           }
           console.log('[Bridge] vMix push sent');
+        }
+        if (data.freeShow && data.freeShow.enabled) {
+          fetch(`http://${data.freeShow.ip}:${data.freeShow.port}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set_plain_text', data: { id: 'Default', value: data.content } })
+          }).catch(e => console.error('[Bridge] FreeShow Error:', e.message));
         }
       } 
       else if (data.action === 'clear_live') {
@@ -654,6 +674,13 @@ export default function ContextEngineDashboard() {
           fetch(`http://${data.proPresenter.ip}:${data.proPresenter.port}/v1/message/1/clear`, {
             method: 'GET'
           }).catch(e => console.error('[Bridge] ProPresenter Error:', e.message));
+        }
+        if (data.freeShow && data.freeShow.enabled) {
+          fetch(`http://${data.freeShow.ip}:${data.freeShow.port}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear_slide' })
+          }).catch(e => console.error('[Bridge] FreeShow Error:', e.message));
         }
       }
     });
@@ -1681,7 +1708,20 @@ export default function ContextEngineDashboard() {
               )}
             </div>
 
-            <div className="setting-item" style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "15px" }}>
+                        <div className="setting-item" style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "15px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#60a5fa" }}>
+                <input type="checkbox" checked={graphicsSettings.freeShowEnabled} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, freeShowEnabled: e.target.checked })} />
+                FreeShow Connection
+                <span title={`API Status: ${apiStatuses.freeShow}`} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: apiStatuses.freeShow === 'online' ? '#22c55e' : '#ef4444', display: 'inline-block', marginLeft: 'auto' }}></span>
+              </label>
+              {graphicsSettings.freeShowEnabled && (
+                <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                  <input type="text" placeholder="IP Address" value={graphicsSettings.freeShowIp} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, freeShowIp: e.target.value })} />
+                  <input type="text" placeholder="Port" style={{ width: "70px" }} value={graphicsSettings.freeShowPort} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, freeShowPort: e.target.value })} />
+                </div>
+              )}
+            </div>
+<div className="setting-item" style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "15px" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#60a5fa" }}>
                 <input type="checkbox" checked={graphicsSettings.proPresenterEnabled} onChange={(e) => setGraphicsSettings({ ...graphicsSettings, proPresenterEnabled: e.target.checked })} />
                 ProPresenter 7 Connection
